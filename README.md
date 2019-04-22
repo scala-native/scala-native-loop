@@ -1,4 +1,4 @@
-# native-loop
+# native-loop (PRE-RELEASE)
 Extensible event loop and async-oriented IO for Scala Native; powered by libuv.
 
 Shameless plug: code mostly adapted from my book, [Modern Systems Programming in Scala Native](https://pragprog.com/book/rwscala/modern-systems-programming-with-scala-native)
@@ -22,6 +22,20 @@ That said - providing a full-featured ecosystem in a single library isn't feasib
 ## Why is this here?
 
 To demonstrate the architectural style of a full, extensible async ecosystem for Scala Native, with an idiomatic Future-based API, implemented entirely as a library, and to start discussion about what we our priorities are.  
+
+## LoopExtension trait
+
+To attach a new library to the event loop, all we need to do is provide the `LoopExtension` trait:
+
+```
+trait LoopExtension {
+  def activeRequests:Int
+}
+```
+
+And then register the component at runtime with `EventLoop.addExtension()`. 
+
+This is necessary because we need some way to know if there are pending IO tasks being managed by a C library, even if there are no outstanding Futures, and prevent the event loop from shutting down prematurely in that case.
 
 ## Maintenance Status
 
