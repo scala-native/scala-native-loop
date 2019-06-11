@@ -1,7 +1,9 @@
 # native-loop (PRE-RELEASE)
 Extensible event loop and async-oriented IO for Scala Native; powered by libuv.
 
-Shameless plug: code mostly adapted from my book, [Modern Systems Programming in Scala Native](https://pragprog.com/book/rwscala/modern-systems-programming-with-scala-native)
+## UNDER CONSTRUCTION
+
+If you're looking for the new 0.4 rewrite, check the `04` branch.  The current state of master is mostly extracted from the book [Modern Systems Programming in Scala Native](https://pragprog.com/book/rwscala/modern-systems-programming-with-scala-native).
 
 ## What is it?
 native-loop provides a real, asynchronous ExecutionContext/Future implementation for Scala Native.
