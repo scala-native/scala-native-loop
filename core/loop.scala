@@ -1,4 +1,7 @@
-import scalanative.native._
+package scala.scalanative.loop
+import scala.scalanative.unsafe._
+import scala.scalanative.libc.stdlib
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.Future
@@ -24,7 +27,7 @@ object EventLoop extends ExecutionContextExecutor {
   private def initDispatcher(loop:LibUV.Loop):PrepareHandle = {
     val handle = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
     check(uv_prepare_init(loop, handle), "uv_prepare_init")
-    check(uv_prepare_start(handle, dispatcher_cb), "uv_prepare_start")
+    check(uv_prepare_start(handle, prepareCallback), "uv_prepare_start")
     return handle
   }
 
@@ -36,22 +39,23 @@ object EventLoop extends ExecutionContextExecutor {
     extensions.exists( _.activeRequests > 0)
   }
 
-  private def dispatchStep(handle:PrepareHandle) = {
-    while (taskQueue.nonEmpty) {
-      val runnable = taskQueue.remove(0)
-      try {
-        runnable.run()
-      } catch {
-        case t: Throwable => reportFailure(t)
+  val prepareCallback = new PrepareCB {
+    def apply(handle:PrepareHandle) = {
+      while (taskQueue.nonEmpty) {
+        val runnable = taskQueue.remove(0)
+        try {
+          runnable.run()
+        } catch {
+          case t: Throwable => reportFailure(t)
+        }
       }
-    }
-    if (taskQueue.isEmpty && !extensionsWorking) {
-      println("stopping dispatcher")
-      LibUV.uv_prepare_stop(handle)
+      if (taskQueue.isEmpty && !extensionsWorking) {
+        println("stopping dispatcher")
+        LibUV.uv_prepare_stop(handle)
+      }
+
     }
   }
-
-  private val dispatcher_cb = CFunctionPtr.fromFunction1(dispatchStep)
 
   private val dispatcher = initDispatcher(loop)
 
@@ -61,13 +65,11 @@ object EventLoop extends ExecutionContextExecutor {
     t.printStackTrace()
   }
 
-//   def getStreams():Seq[Stream] =  streams.toSeq
   def run(mode:Int = UV_RUN_DEFAULT):Unit = {
     var continue = 1
     while (continue != 0) {
         continue = uv_run(loop, mode)
         println(s"uv_run returned $continue")
-    // uv_run(loop, mode)
     }
   }
 }
@@ -88,16 +90,16 @@ object LibUV {
   type FSReq = Ptr[Ptr[Byte]]
   type ShutdownReq = Ptr[Ptr[Byte]]
   type Connection = Ptr[Byte]
-  type ConnectionCB = CFunctionPtr2[TCPHandle,Int,Unit]
-  type AllocCB = CFunctionPtr3[TCPHandle,CSize,Ptr[Buffer],Unit]
-  type ReadCB = CFunctionPtr3[TCPHandle,CSSize,Ptr[Buffer],Unit]
-  type WriteCB = CFunctionPtr2[WriteReq,Int,Unit]
-  type PrepareCB = CFunctionPtr1[PrepareHandle, Unit]
-  type ShutdownCB = CFunctionPtr2[ShutdownReq,Int,Unit]
-  type CloseCB = CFunctionPtr1[TCPHandle,Unit]
-  type PollCB = CFunctionPtr3[PollHandle, Int, Int, Unit]
-  type TimerCB = CFunctionPtr1[TimerHandle,Unit]
-  type FSCB = CFunctionPtr1[FSReq,Unit]
+  type ConnectionCB = CFuncPtr2[TCPHandle,Int,Unit]
+  type AllocCB = CFuncPtr3[TCPHandle,CSize,Ptr[Buffer],Unit]
+  type ReadCB = CFuncPtr3[TCPHandle,CSSize,Ptr[Buffer],Unit]
+  type WriteCB = CFuncPtr2[WriteReq,Int,Unit]
+  type PrepareCB = CFuncPtr1[PrepareHandle, Unit]
+  type ShutdownCB = CFuncPtr2[ShutdownReq,Int,Unit]
+  type CloseCB = CFuncPtr1[TCPHandle,Unit]
+  type PollCB = CFuncPtr3[PollHandle, Int, Int, Unit]
+  type TimerCB = CFuncPtr1[TimerHandle,Unit]
+  type FSCB = CFuncPtr1[FSReq,Unit]
 
   def uv_default_loop(): Loop = extern
   def uv_loop_size(): CSize = extern
@@ -110,10 +112,8 @@ object LibUV {
 
   def uv_tty_init(loop:Loop, handle:TTYHandle, fd:Int, readable:Int):Int = extern
 
-  // START:tcp_methods
   def uv_tcp_init(loop:Loop, tcp_handle:TCPHandle):Int = extern
   def uv_tcp_bind(tcp_handle:TCPHandle, address:Ptr[Byte], flags:Int):Int = extern
-  // END:tcp_methods
 
   def uv_ip4_addr(address:CString, port:Int, out_addr:Ptr[Byte]):Int = extern
   def uv_ip4_name(address:Ptr[Byte], s:CString, size:Int):Int = extern
@@ -147,7 +147,6 @@ object LibUV {
   def uv_handle_type_name(handle:TTYHandle):Int = extern
   def uv_guess_handle(fd:Int):Int = extern
 
-  // START:uv_file_functions
   def uv_fs_open(loop:Loop, req:FSReq, path:CString, flags:Int, mode:Int, cb:FSCB):Int = extern
   def uv_fs_read(loop:Loop, req:FSReq, fd:Int, bufs:Ptr[Buffer], numBufs:Int, offset:Long, fsCB:FSCB):Int = extern
   def uv_fs_write(loop:Loop, req:FSReq, fd:Int, bufs:Ptr[Buffer], numBufs:Int, offset:Long, fsCB:FSCB):Int = extern
@@ -155,7 +154,6 @@ object LibUV {
   def uv_req_cleanup(req:FSReq):Unit = extern
   def uv_fs_get_result(req:FSReq):Int = extern
   def uv_fs_get_ptr(req:FSReq):Ptr[Byte] = extern
-  // END:uv_file_functions
 }
 
 object LibUVConstants {
@@ -191,8 +189,6 @@ object LibUVConstants {
     case _ => 64
   }
   val default_permissions = 420 // octal 0644
-
-
 
   def check(v:Int, label:String):Int = {
       if (v == 0) {

@@ -1,3 +1,0 @@
-foo ba
-r baz fi
-zz buzz
