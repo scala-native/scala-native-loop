@@ -34,7 +34,7 @@ case class Handle(serial:Long, handle:Ptr[Byte]) {
   }
 }
 
-object StreamIO extends LoopExtension {
+object StreamIO {
   import LibUV._, LibUVConstants._
   type ItemHandler = ((String,PipeHandle,Long) => Unit)
   type DoneHandler = ((PipeHandle,Long) => Unit)
@@ -42,20 +42,7 @@ object StreamIO extends LoopExtension {
   var streams = mutable.HashMap[Long,Handlers]()
   var serial = 0L
 
-  override def activeRequests:Int = {
-    streams.size
-  }
-
-  var initialized = false
-
-  def checkInit() = if (!initialized) {
-    println("initializing PipeIO")
-    EventLoop.addExtension(this)
-    initialized = true
-  }
-
   def fromPipe(fd:Int):Handle = {
-    checkInit
     val id = serial
     serial += 1
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))
@@ -66,22 +53,8 @@ object StreamIO extends LoopExtension {
     Handle(id,handle)
   }
 
-  // def fromSocket(fd:Int):Handle = {
-  //   checkInit
-  //   val id = serial
-  //   serial += 1
-  //   val handle = stdlib.malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[Ptr[Long]]
-  //   uv_tcp_init(EventLoop.loop,handle)
-  //   val socket_data = handle
-  //   !socket_data = serial
-  //   // getaddrinfo/uv_connect here
-  //   ???
-  //   // Handle(id,handle)
-  // }
-
   def stream(fd:Int)(itemHandler:ItemHandler,
                      doneHandler:DoneHandler):Handle = {
-    checkInit
     val pipeId = serial
     serial += 1
     val handle = stdlib.malloc(uv_handle_size(UV_PIPE_T))

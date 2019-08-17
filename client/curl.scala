@@ -10,7 +10,7 @@ import scala.scalanative.runtime.Intrinsics
 
 case class ResponseState(var code:Int = 200,var headers:mutable.Map[String,String] = mutable.Map(),var body:String = "")
 
-object Curl extends LoopExtension {
+object Curl {
   import LibCurl._
   import LibCurlConstants._
   import LibUV._
@@ -24,8 +24,6 @@ object Curl extends LoopExtension {
 
   val requestPromises = mutable.Map[Long,Promise[ResponseState]]()
   val requests = mutable.Map[Long,ResponseState]()
-
-  override def activeRequests = requests.size
 
   var initialized = false
 
@@ -42,7 +40,6 @@ object Curl extends LoopExtension {
       println(s"timerCB: $startTimerCB")
 
       check(uv_timer_init(loop,timerHandle),"uv_timer_init")
-      EventLoop.addExtension(this)
       initialized = true
       println("done")
     }

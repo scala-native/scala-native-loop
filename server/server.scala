@@ -6,7 +6,7 @@ import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
 import scala.concurrent._
 
-object Server extends LoopExtension {
+object Server {
   import LibUV._, LibUVConstants._
   import Parser._
 
@@ -16,8 +16,6 @@ object Server extends LoopExtension {
   val HTTP_REQUEST = 0
   val HTTP_RESPONSE = 1
   val HTTP_BOTH = 2
-
-  override def activeRequests = listeners.size
 
   type ConnectionState = CStruct3[Long,LibUV.TCPHandle,Ptr[HttpParser.Parser]]
   type RequestHandler = (RequestState, TCPHandle) => Unit
@@ -61,7 +59,6 @@ object Server extends LoopExtension {
   }
 
   def init(port:Int)(handler:RequestHandler):Unit = {
-    EventLoop.addExtension(this)
     listeners(port) = handler
     val addr = malloc(64)
     check(uv_ip4_addr(c"0.0.0.0", 9999, addr),"uv_ip4_addr")

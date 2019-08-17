@@ -11,32 +11,16 @@ import scala.Option
 import LibUV.Buffer
 import LibUVConstants.check
 
-trait LoopExtension {
-  def activeRequests:Int
-}
-
 object EventLoop extends ExecutionContextExecutor {
   import LibUV._, LibUVConstants._
 
-
   val loop = uv_default_loop()
   private val taskQueue = ListBuffer[Runnable]()
-  private val extensions = ListBuffer[LoopExtension]()
-  var publishers = 0
+  val handle = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
 
   private def initDispatcher(loop:LibUV.Loop):PrepareHandle = {
-    val handle = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
     check(uv_prepare_init(loop, handle), "uv_prepare_init")
-    check(uv_prepare_start(handle, prepareCallback), "uv_prepare_start")
     return handle
-  }
-
-  def addExtension(e:LoopExtension):Unit = {
-    extensions.append(e)
-  }
-
-  private def extensionsWorking():Boolean = {
-    extensions.exists( _.activeRequests > 0)
   }
 
   val prepareCallback = new PrepareCB {
@@ -49,19 +33,22 @@ object EventLoop extends ExecutionContextExecutor {
           case t: Throwable => reportFailure(t)
         }
       }
-      if (taskQueue.isEmpty && !extensionsWorking) {
-        println("stopping dispatcher")
+      if (taskQueue.isEmpty) {
         LibUV.uv_prepare_stop(handle)
       }
-
     }
   }
 
   private val dispatcher = initDispatcher(loop)
 
-  def execute(runnable: Runnable): Unit = taskQueue += runnable
+  private val bootstrapFuture = Future(run())(scalanative.runtime.ExecutionContext.global)
+
+  def execute(runnable: Runnable): Unit = {
+    taskQueue += runnable
+    check(uv_prepare_start(handle, prepareCallback), "uv_prepare_start")
+  }
+
   def reportFailure(t: Throwable): Unit = {
-    println(s"Future failed with Throwable $t:")
     t.printStackTrace()
   }
 
@@ -69,7 +56,6 @@ object EventLoop extends ExecutionContextExecutor {
     var continue = 1
     while (continue != 0) {
         continue = uv_run(loop, mode)
-        println(s"uv_run returned $continue")
     }
   }
 }
@@ -192,12 +178,11 @@ object LibUVConstants {
 
   def check(v:Int, label:String):Int = {
       if (v == 0) {
-        println(s"$label returned $v")
         v
       } else {
         val error = fromCString(uv_err_name(v))
         val message = fromCString(uv_strerror(v))
-        println(s"$label returned $v: $error: $message")
+        println(s"ERROR: $label returned $v: $error: $message")
         v
       }
   }
