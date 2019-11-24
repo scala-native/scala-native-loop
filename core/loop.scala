@@ -41,7 +41,12 @@ object EventLoop extends ExecutionContextExecutor {
 
   private val dispatcher = initDispatcher(loop)
 
-  private val bootstrapFuture = Future(run())(scalanative.runtime.ExecutionContext.global)
+  // Schedule loop execution after main ends
+  scalanative.runtime.ExecutionContext.global.execute(
+    new Runnable {
+      def run(): Unit = EventLoop.run()
+    }
+  )
 
   def execute(runnable: Runnable): Unit = {
     taskQueue += runnable

@@ -3,3 +3,5 @@ target/
 project/project
 examples/*/target
 lowered.hnir
+.metals
+.bloop
