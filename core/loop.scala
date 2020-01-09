@@ -41,7 +41,20 @@ object EventLoop extends ExecutionContextExecutor {
 
   private val dispatcher = initDispatcher(loop)
 
-  private val bootstrapFuture = Future(run())(scalanative.runtime.ExecutionContext.global)
+  // Schedule loop execution after main ends
+  scalanative.runtime.ExecutionContext.global.execute(
+    new Runnable {
+      def run(): Unit = {
+        val returnCode = EventLoop.run()
+        if(returnCode != 0) {
+          Zone { implicit z =>
+            System.err.println(fromCString(uv_err_name(returnCode)))
+          }
+          System.exit(returnCode)
+        }
+      }
+    }
+  )
 
   def execute(runnable: Runnable): Unit = {
     taskQueue += runnable
@@ -52,11 +65,12 @@ object EventLoop extends ExecutionContextExecutor {
     t.printStackTrace()
   }
 
-  def run(mode:Int = UV_RUN_DEFAULT):Unit = {
+  def run(mode:Int = UV_RUN_DEFAULT):Int = {
     var continue = 1
     while (continue != 0) {
         continue = uv_run(loop, mode)
     }
+    continue
   }
 }
 
