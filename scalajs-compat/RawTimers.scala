@@ -47,7 +47,7 @@ object RawTimers {
    */
   def clearTimeout(handle: SetTimeoutHandle): Unit = {
     if (handle.timerHandle != null) {
-      check(uv_timer_stop(handle.timerHandle),"uv_timer_stop")
+      check(uv_timer_stop(handle.timerHandle), "uv_timer_stop")
       stdlib.free(handle.timerHandle)
     }
   }
@@ -72,7 +72,7 @@ object RawTimers {
    */
   def clearInterval(handle: SetIntervalHandle): Unit = {
     if (handle.timerHandle != null) {
-      check(uv_timer_stop(handle.timerHandle),"uv_timer_stop")
+      check(uv_timer_stop(handle.timerHandle), "uv_timer_stop")
       stdlib.free(handle.timerHandle)
     }
   }

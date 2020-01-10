@@ -4,10 +4,10 @@ import scala.concurrent.duration._
 import LibCurlConstants._
 
 object Main {
-  implicit val ec:ExecutionContext = EventLoop
+  implicit val ec: ExecutionContext = EventLoop
 
-  def main(args:Array[String]):Unit = {
-    Curl.startRequest(GET,"http://www.example.com",Seq()).map { response =>
+  def main(args: Array[String]): Unit = {
+    Curl.startRequest(GET, "http://www.example.com", Seq()).map { response =>
       println(s"got response: $response")
     }
 

@@ -12,10 +12,10 @@ import LibUV._, LibUVConstants._
 
 object Timer {
 
-  var serial = 0L
-  var callbacks = mutable.HashMap[Long,() => Unit]()
+  var serial    = 0L
+  var callbacks = mutable.HashMap[Long, () => Unit]()
 
-  def delay(dur:Duration):Future[Unit] = {
+  def delay(dur: Duration): Future[Unit] = {
     val promise = Promise[Unit]()
     serial += 1
     val timer_id = serial
@@ -23,7 +23,7 @@ object Timer {
     val millis = dur.toMillis
 
     val timer_handle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
-    uv_timer_init(EventLoop.loop,timer_handle)
+    uv_timer_init(EventLoop.loop, timer_handle)
     val timer_data = timer_handle.asInstanceOf[Ptr[Long]]
     !timer_data = timer_id
     uv_timer_start(timer_handle, timerCB, millis, 0)
@@ -31,25 +31,25 @@ object Timer {
     promise.future
   }
 
-  val timerCB = new TimerCB { 
-    def apply(handle:TimerHandle):Unit = {
+  val timerCB = new TimerCB {
+    def apply(handle: TimerHandle): Unit = {
       val timer_data = handle.asInstanceOf[Ptr[Long]]
-      val timer_id = !timer_data
-      val callback = callbacks(timer_id)
+      val timer_id   = !timer_data
+      val callback   = callbacks(timer_id)
       callbacks.remove(timer_id)
       callback()
       stdlib.free(handle)
     }
   }
 
-  // low-level, intended for use in scala.js compat layer - leaks memory if 
+  // low-level, intended for use in scala.js compat layer - leaks memory if
   // caller does not free() returned handle
-  def oneTime(dur:Double, callback: () => Unit):PrepareHandle = {
+  def oneTime(dur: Double, callback: () => Unit): PrepareHandle = {
     serial += 1
     val timer_id = serial
 
     val timer_handle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
-    uv_timer_init(EventLoop.loop,timer_handle)
+    uv_timer_init(EventLoop.loop, timer_handle)
     val timer_data = timer_handle.asInstanceOf[Ptr[Long]]
     !timer_data = timer_id
 
@@ -61,15 +61,15 @@ object Timer {
     timer_handle
   }
 
-  // low-level, intended for use in scala.js compat layer - leaks memory if 
+  // low-level, intended for use in scala.js compat layer - leaks memory if
   // caller does not free() returned handle
-  def repeat(dur:Double, callback: () => Unit):PrepareHandle = {
+  def repeat(dur: Double, callback: () => Unit): PrepareHandle = {
     serial += 1
     val timer_id = serial
 
     callbacks(timer_id) = () => callback()
     val timer_handle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
-    uv_timer_init(EventLoop.loop,timer_handle)
+    uv_timer_init(EventLoop.loop, timer_handle)
     val timer_data = timer_handle.asInstanceOf[Ptr[Long]]
     !timer_data = timer_id
     uv_timer_start(timer_handle, timerCB, dur.toLong, dur.toLong)
