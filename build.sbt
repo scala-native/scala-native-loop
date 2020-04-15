@@ -25,6 +25,9 @@ lazy val commonSettings = Seq(
   organization := "dev.whaling",
   version := "0.1.1-SNAPSHOT",
   scalaVersion := "2.11.12",
+  scalacOptions ++= Seq(
+    "-feature"
+  ),
   skip in publish := true,
   skip in publishLocal := true
 )
