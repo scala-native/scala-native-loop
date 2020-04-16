@@ -12,10 +12,9 @@
 
 package scala.scalajs.js.timers
 
-import scalanative.unsafe.Zone
 import scalanative.libc.stdlib
 import scalanative.loop.Timer
-import scalanative.loop.LibUV.{TimerHandle, uv_timer_stop}
+import scalanative.loop.LibUV.uv_timer_stop
 import scalanative.loop.LibUVConstants.check
 
 /**

@@ -2,11 +2,8 @@ package scala.scalanative.loop
 import scala.scalanative.unsafe._
 import scala.scalanative.libc.stdlib
 import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.Future
 import scala.concurrent.Promise
-import scala.util.{Try, Success}
-import scala.Option
 import scala.concurrent.duration._
 import LibUV._, LibUVConstants._
 

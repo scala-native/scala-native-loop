@@ -6,7 +6,8 @@ Extensible event loop and async-oriented IO for Scala Native; powered by libuv.
 If you're looking for the new 0.4 rewrite, check the `04` branch.  The current state of master is mostly extracted from the book [Modern Systems Programming in Scala Native](https://pragprog.com/book/rwscala/modern-systems-programming-with-scala-native).
 
 ## What is it?
-native-loop provides a real, asynchronous ExecutionContext/Future implementation for Scala Native.
+
+scala-native-loop provides a real, asynchronous ExecutionContext implementation for Scala Native.
 It's backed by libuv, the same C library that the node.js ecosystem runs on; in addition to basic 
 Future dispatching, we can also use libuv to provide other basic functionality, like:
 
@@ -19,7 +20,7 @@ Future dispatching, we can also use libuv to provide other basic functionality, 
 To provide a working API for practical, async Scala Native programs, we have two subprojects,
 `client` and `server`, which provide an async HTTP client and server, respectively, by integrating addtional C libraries: [nodejs/http-parser](https://github.com/nodejs/http-parser) for request parsing, and [curl](https://github.com/curl/curl) for a full featured client with HTTPS support.
 
-That said - providing a full-featured ecosystem in a single library isn't feasible - instead, we provide a `LoopExtension` trait that allows other C libaries to be integrated to the underlying event loop, in the same way that libcurl and http-parser are integrated; this opens up the possiblity of fully asynchronous bindings for postgres, redis, and many others.
+That said - providing a full-featured ecosystem in a single library isn't feasible - instead, we provide a `LoopExtension` trait that allows other C libraries to be integrated to the underlying event loop, in the same way that libcurl and http-parser are integrated; this opens up the possiblity of fully asynchronous bindings for postgres, redis, and many others.
 
 ## Why is this here?
 

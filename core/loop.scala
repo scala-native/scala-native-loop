@@ -1,77 +1,38 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
-import scala.scalanative.libc.stdlib
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.util.{Try, Success}
-import scala.Option
-import LibUV.Buffer
-import LibUVConstants.check
-
-object EventLoop extends ExecutionContextExecutor {
+object EventLoop {
   import LibUV._, LibUVConstants._
 
-  val loop              = uv_default_loop()
-  private val taskQueue = ListBuffer[Runnable]()
-  val handle            = stdlib.malloc(uv_handle_size(UV_PREPARE_T))
-
-  private def initDispatcher(loop: LibUV.Loop): PrepareHandle = {
-    check(uv_prepare_init(loop, handle), "uv_prepare_init")
-    return handle
-  }
-
-  val prepareCallback = new PrepareCB {
-    def apply(handle: PrepareHandle) = {
-      while (taskQueue.nonEmpty) {
-        val runnable = taskQueue.remove(0)
-        try {
-          runnable.run()
-        } catch {
-          case t: Throwable => reportFailure(t)
-        }
-      }
-      if (taskQueue.isEmpty) {
-        LibUV.uv_prepare_stop(handle)
-      }
-    }
-  }
-
-  private val dispatcher = initDispatcher(loop)
+  val loop: LibUV.Loop = uv_default_loop()
 
   // Schedule loop execution after main ends
   scalanative.runtime.ExecutionContext.global.execute(
     new Runnable {
+      /**
+        * This is the implementation of the event loop
+        * that integrates with libuv. The logic is the
+        * following:
+        * - First we run all Scala futures in the default
+        *   execution context
+        * - Then in loop:
+        *   - we check if they generated IO calls on
+        *     the event loop
+        *   - If it's the case we run libuv's event loop
+        *     using UV_RUN_ONCE that blocks only once
+        *   - We run the default execution context again
+        *     in case the callbacks generated new Futures
+        */
       def run(): Unit = {
-        val returnCode = EventLoop.run()
-        if (returnCode != 0) {
-          Zone { implicit z =>
-            System.err.println(fromCString(uv_err_name(returnCode)))
-          }
-          System.exit(returnCode)
+        scala.scalanative.runtime.loop()
+        while (uv_loop_alive(loop) != 0) {
+          uv_run(loop, UV_RUN_ONCE)
+          scala.scalanative.runtime.loop()
         }
+        uv_loop_close(loop)
       }
     }
   )
-
-  def execute(runnable: Runnable): Unit = {
-    taskQueue += runnable
-    check(uv_prepare_start(handle, prepareCallback), "uv_prepare_start")
-  }
-
-  def reportFailure(t: Throwable): Unit = {
-    t.printStackTrace()
-  }
-
-  def run(mode: Int = UV_RUN_DEFAULT): Int = {
-    var continue = 1
-    while (continue != 0) {
-      continue = uv_run(loop, mode)
-    }
-    continue
-  }
 }
 
 @link("uv")
@@ -103,6 +64,8 @@ object LibUV {
 
   def uv_default_loop(): Loop                                     = extern
   def uv_loop_size(): CSize                                       = extern
+  def uv_loop_alive(loop: Loop): CInt                             = extern
+  def uv_loop_close(loop: Loop): CInt                             = extern
   def uv_is_active(handle: Ptr[Byte]): Int                        = extern
   def uv_handle_size(h_type: Int): CSize                          = extern
   def uv_req_size(r_type: Int): CSize                             = extern
