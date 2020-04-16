@@ -1,15 +1,13 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
 import scala.scalanative.libc.stdlib
-import scala.scalanative.libc.string
 
 import scala.collection.mutable
-import scala.util.{Try, Success, Failure}
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.Future
 import scala.concurrent.{Promise}
 
 case class Handle(serial: Long, handle: Ptr[Byte]) {
-  import LibUV._, LibUVConstants._
+  import LibUV._
 
   def stream(
       itemHandler: StreamIO.ItemHandler,

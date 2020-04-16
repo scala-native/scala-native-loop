@@ -12,7 +12,6 @@
 
 package scala.scalajs.js.timers
 
-import scalanative.unsafe.Zone
 import scalanative.loop.LibUV.TimerHandle
 
 /** <span class="badge badge-non-std" style="float: right;">Non-Standard</span>

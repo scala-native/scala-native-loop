@@ -1,6 +1,5 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
-import scala.scalanative.unsigned._
 import scala.collection.mutable
 import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
@@ -11,7 +10,6 @@ object Server {
   import Parser._
 
   var serial = 0
-  val loop   = uv_default_loop()
 
   val HTTP_REQUEST  = 0
   val HTTP_RESPONSE = 1
@@ -69,7 +67,7 @@ object Server {
     val addr = malloc(64)
     check(uv_ip4_addr(c"0.0.0.0", 9999, addr), "uv_ip4_addr")
     val server = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
-    check(uv_tcp_init(loop, server), "uv_tcp_init")
+    check(uv_tcp_init(EventLoop.loop, server), "uv_tcp_init")
     !(server.asInstanceOf[Ptr[Long]]) = port
     check(uv_tcp_bind(server, addr, 0), "uv_tcp_bind")
     check(uv_listen(server, 4096, onConnect), "uv_listen")
@@ -96,7 +94,7 @@ object Server {
       }
       !(client.asInstanceOf[Ptr[Ptr[Byte]]]) = state.asInstanceOf[Ptr[Byte]]
 
-      uv_tcp_init(loop, client)
+      uv_tcp_init(EventLoop.loop, client)
       uv_accept(server, client)
       uv_read_start(client, onAlloc, onRead)
     }

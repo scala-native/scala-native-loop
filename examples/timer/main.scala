@@ -1,10 +1,8 @@
 import scala.scalanative.loop._
-import scala.concurrent._
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main {
-  implicit val ec: ExecutionContext = EventLoop
-
   def main(args: Array[String]): Unit = {
     Timer
       .delay(3.seconds)
@@ -19,7 +17,5 @@ object Main {
       .onComplete { _ =>
         println("done")
       }
-
-    EventLoop.run()
   }
 }

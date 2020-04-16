@@ -1,6 +1,5 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
-import scala.scalanative.unsigned._
 import scala.collection.mutable
 import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
