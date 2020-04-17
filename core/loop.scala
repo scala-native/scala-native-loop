@@ -9,20 +9,21 @@ object EventLoop {
   // Schedule loop execution after main ends
   scalanative.runtime.ExecutionContext.global.execute(
     new Runnable {
+
       /**
-        * This is the implementation of the event loop
-        * that integrates with libuv. The logic is the
-        * following:
-        * - First we run all Scala futures in the default
-        *   execution context
-        * - Then in loop:
-        *   - we check if they generated IO calls on
-        *     the event loop
-        *   - If it's the case we run libuv's event loop
-        *     using UV_RUN_ONCE that blocks only once
-        *   - We run the default execution context again
-        *     in case the callbacks generated new Futures
-        */
+       * This is the implementation of the event loop
+       * that integrates with libuv. The logic is the
+       * following:
+       * - First we run all Scala futures in the default
+       *   execution context
+       * - Then in loop:
+       *   - we check if they generated IO calls on
+       *     the event loop
+       *   - If it's the case we run libuv's event loop
+       *     using UV_RUN_ONCE that blocks only once
+       *   - We run the default execution context again
+       *     in case the callbacks generated new Futures
+       */
       def run(): Unit = {
         scala.scalanative.runtime.loop()
         while (uv_loop_alive(loop) != 0) {

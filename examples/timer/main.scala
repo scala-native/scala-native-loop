@@ -14,8 +14,6 @@ object Main {
         println("boop")
         Timer.delay(1.second)
       }
-      .onComplete { _ =>
-        println("done")
-      }
+      .onComplete { _ => println("done") }
   }
 }
