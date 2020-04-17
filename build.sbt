@@ -2,6 +2,9 @@ homepage := Some(url("https://github.com/scala-native/scala-native-loop"))
 licenses := Seq(
   "Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")
 )
+
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 publishMavenStyle := true
 Test / publishArtifact := false
 pomIncludeRepository := { _ => false }
