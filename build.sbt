@@ -4,9 +4,7 @@ licenses := Seq(
 )
 publishMavenStyle := true
 Test / publishArtifact := false
-pomIncludeRepository := { _ =>
-  false
-}
+pomIncludeRepository := { _ => false }
 ThisBuild / publishTo := {
   val nexus = "https://oss.sonatype.org/"
   if (isSnapshot.value)

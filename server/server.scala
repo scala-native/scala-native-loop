@@ -89,9 +89,7 @@ object Server {
 
       state._1 = id
       state._2 = client
-      state._3 = Parser.initConnection(id) { r =>
-        handler(r, client)
-      }
+      state._3 = Parser.initConnection(id) { r => handler(r, client) }
       !(client.asInstanceOf[Ptr[Ptr[Byte]]]) = state.asInstanceOf[Ptr[Byte]]
 
       uv_tcp_init(EventLoop.loop, client)
