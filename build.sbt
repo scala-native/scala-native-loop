@@ -38,33 +38,39 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import",
     "-Xfatal-warnings"
   ),
+  Compile / doc / scalacOptions -= "-Xfatal-warnings",
   publish / skip := true,
   publishLocal / skip := true
 )
 
-lazy val core = project.in(file("core"))
+lazy val core = project
+  .in(file("core"))
   .settings(name := "native-loop-core")
   .settings(commonSettings)
   .settings(publish / skip := false)
   .settings(publishLocal / skip := false)
   .enablePlugins(ScalaNativePlugin)
 
-lazy val pipe = project.in(file("pipe"))
+lazy val pipe = project
+  .in(file("pipe"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
 
-lazy val client = project.in(file("client"))
+lazy val client = project
+  .in(file("client"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
 
-lazy val server = project.in(file("server"))
+lazy val server = project
+  .in(file("server"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
 
-lazy val scalaJsCompat = project.in(file("scalajs-compat"))
+lazy val scalaJsCompat = project
+  .in(file("scalajs-compat"))
   .settings(name := "native-loop-js-compat")
   .settings(commonSettings)
   .settings(publish / skip := false)
@@ -72,22 +78,26 @@ lazy val scalaJsCompat = project.in(file("scalajs-compat"))
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
 
-lazy val serverExample = project.in(file("examples/server"))
+lazy val serverExample = project
+  .in(file("examples/server"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core, server, client)
 
-lazy val pipeExample = project.in(file("examples/pipe"))
+lazy val pipeExample = project
+  .in(file("examples/pipe"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core, pipe, client)
 
-lazy val curlExample = project.in(file("examples/curl"))
+lazy val curlExample = project
+  .in(file("examples/curl"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core, client)
 
-lazy val timerExample = project.in(file("examples/timer"))
+lazy val timerExample = project
+  .in(file("examples/timer"))
   .settings(commonSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
