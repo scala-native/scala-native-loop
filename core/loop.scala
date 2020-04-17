@@ -1,5 +1,6 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
+import scala.annotation.tailrec
 
 object EventLoop {
   import LibUV._, LibUVConstants._
@@ -20,14 +21,21 @@ object EventLoop {
        *   - we check if they generated IO calls on
        *     the event loop
        *   - If it's the case we run libuv's event loop
-       *     using UV_RUN_ONCE that blocks only once
+       *     using UV_RUN_ONCE until there are callbacks
+       *     to execute
        *   - We run the default execution context again
        *     in case the callbacks generated new Futures
        */
       def run(): Unit = {
+        @tailrec
+        def runUv(): Unit = {
+          val res = uv_run(loop, UV_RUN_ONCE)
+          if(res != 0) runUv()
+        }
+
         scala.scalanative.runtime.loop()
         while (uv_loop_alive(loop) != 0) {
-          uv_run(loop, UV_RUN_ONCE)
+          runUv()
           scala.scalanative.runtime.loop()
         }
         uv_loop_close(loop)
