@@ -35,9 +35,13 @@ lazy val commonSettings = Seq(
   version := "0.1.1-SNAPSHOT",
   scalaVersion := "2.11.12",
   scalacOptions ++= Seq(
+    "-deprecation",
+    "-encoding",
+    "utf8",
     "-feature",
-    "-Ywarn-unused-import",
-    "-Xfatal-warnings"
+    "-unchecked",
+    "-Xfatal-warnings",
+    "-Ywarn-unused-import"
   ),
   Compile / doc / scalacOptions -= "-Xfatal-warnings",
   publish / skip := true,
