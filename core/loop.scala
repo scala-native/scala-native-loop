@@ -47,6 +47,7 @@ object EventLoop {
 @link("uv")
 @extern
 object LibUV {
+  type UVHandle      = Ptr[Byte]
   type PipeHandle    = Ptr[Byte]
   type PollHandle    = Ptr[Ptr[Byte]]
   type TCPHandle     = Ptr[Byte]
@@ -66,7 +67,7 @@ object LibUV {
   type WriteCB      = CFuncPtr2[WriteReq, Int, Unit]
   type PrepareCB    = CFuncPtr1[PrepareHandle, Unit]
   type ShutdownCB   = CFuncPtr2[ShutdownReq, Int, Unit]
-  type CloseCB      = CFuncPtr1[TCPHandle, Unit]
+  type CloseCB      = CFuncPtr1[UVHandle, Unit]
   type PollCB       = CFuncPtr3[PollHandle, Int, Int, Unit]
   type TimerCB      = CFuncPtr1[TimerHandle, Unit]
   type FSCB         = CFuncPtr1[FSReq, Unit]
@@ -77,6 +78,8 @@ object LibUV {
   def uv_loop_close(loop: Loop): CInt                             = extern
   def uv_is_active(handle: Ptr[Byte]): Int                        = extern
   def uv_handle_size(h_type: Int): CSize                          = extern
+  def uv_handle_get_data(handle: Ptr[Byte]): Long                 = extern
+  def uv_handle_set_data(handle: Ptr[Byte], data: Long): Unit     = extern
   def uv_req_size(r_type: Int): CSize                             = extern
   def uv_prepare_init(loop: Loop, handle: PrepareHandle): Int     = extern
   def uv_prepare_start(handle: PrepareHandle, cb: PrepareCB): Int = extern
