@@ -1,4 +1,5 @@
 package scala.scalanative.loop
+package internals
 
 import scala.scalanative.runtime.Intrinsics._
 import scala.scalanative.unsafe.Ptr
