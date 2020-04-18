@@ -5,6 +5,7 @@ import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import LibUV._, LibUVConstants._
 import scala.scalanative.unsafe.Ptr
+import internals.HandleUtils
 
 @inline class Timer private (private val ptr: Ptr[Byte]) extends AnyVal {
   def clear(): Unit = {
