@@ -24,6 +24,11 @@ import scala.concurrent.duration.FiniteDuration
  */
 package object timers {
 
+  import scala.scalanative.loop.Timer
+
+  type SetTimeoutHandle = Timer 
+  type SetIntervalHandle = Timer 
+
   /** Schedule something for execution in `interval` milliseconds.
    *
    *  @param interval duration in milliseconds to wait
@@ -32,8 +37,9 @@ package object timers {
    *          to [[clearTimeout]].
    *  @note Uses JavaScript's non-standard `setTimeout`
    */
-  def setTimeout(interval: Double)(body: => Unit): SetTimeoutHandle =
+  def setTimeout(interval: Double)(body: => Unit): SetTimeoutHandle = {
     RawTimers.setTimeout(() => body, interval)
+  }
 
   /** Schedule something for execution after a duration.
    *
@@ -43,16 +49,16 @@ package object timers {
    *          to [[clearTimeout]].
    *  @note Uses JavaScript's non-standard `setTimeout`
    */
-  def setTimeout(interval: FiniteDuration)(body: => Unit): SetTimeoutHandle =
+  def setTimeout(interval: FiniteDuration)(body: => Unit): SetTimeoutHandle = {
     RawTimers.setTimeout(() => body, interval.toMillis.toDouble)
+  }
 
   /** Cancel a timeout execution
    *  @param handle The handle returned by
    *         [[setTimeout(interval:scala\.concurrent\.duration\.FiniteDuration)* setTimeout]].
    *  @note Uses JavaScript's non-standard `clearTimeout`
    */
-  def clearTimeout(handle: SetTimeoutHandle): Unit =
-    RawTimers.clearTimeout(handle)
+  def clearTimeout(handle: SetTimeoutHandle): Unit = handle.clear()
 
   /** Schedule something for repeated execution every `interval` milliseconds.
    *
@@ -82,6 +88,6 @@ package object timers {
    *  @note Uses JavaScript's non-standard `clearInterval`
    */
   def clearInterval(handle: SetIntervalHandle): Unit =
-    RawTimers.clearInterval(handle)
+    handle.clear()
 
 }

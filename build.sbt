@@ -44,6 +44,9 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import"
   ),
   Compile / doc / scalacOptions -= "-Xfatal-warnings",
+  libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.5-SNAPSHOT" % Test,
+  testFrameworks += new TestFramework("utest.runner.Framework"),
+  Test / nativeLinkStubs := true,
   publish / skip := true,
   publishLocal / skip := true
 )

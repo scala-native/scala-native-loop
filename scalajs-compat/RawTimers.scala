@@ -12,10 +12,7 @@
 
 package scala.scalajs.js.timers
 
-import scalanative.libc.stdlib
 import scalanative.loop.Timer
-import scalanative.loop.LibUV.uv_timer_stop
-import scalanative.loop.LibUVConstants.check
 
 /**
  *  <span class="badge badge-non-std" style="float: right;">Non-Standard</span>
@@ -34,22 +31,8 @@ object RawTimers {
    *  @return A handle that can be used to cancel the timeout by passing it
    *          to [[clearTimeout]].
    */
-  def setTimeout(handler: () => Unit, interval: Double): SetTimeoutHandle = {
-    val t = Timer.oneTime(interval, handler)
-    new SetTimeoutHandle {
-      val timerHandle = t
-    }
-  }
-
-  /** Cancel a timeout execution
-   *  @param handle The handle returned by [[setTimeout]]
-   */
-  def clearTimeout(handle: SetTimeoutHandle): Unit = {
-    if (handle.timerHandle != null) {
-      check(uv_timer_stop(handle.timerHandle), "uv_timer_stop")
-      stdlib.free(handle.timerHandle)
-    }
-  }
+  @inline def setTimeout(handler: () => Unit, interval: Double): SetTimeoutHandle =
+    Timer.timeout(interval.toLong)(handler)
 
   /** Schedule `handler` for repeated execution every `interval`
    *  milliseconds.
@@ -59,20 +42,6 @@ object RawTimers {
    *  @return A handle that can be used to cancel the interval by passing it
    *          to [[clearInterval]].
    */
-  def setInterval(handler: () => Unit, interval: Double): SetIntervalHandle = {
-    val t = Timer.repeat(interval, handler)
-    new SetIntervalHandle {
-      val timerHandle = t
-    }
-  }
-
-  /** Cancel an interval execution
-   *  @param handle The handle returned by [[setInterval]]
-   */
-  def clearInterval(handle: SetIntervalHandle): Unit = {
-    if (handle.timerHandle != null) {
-      check(uv_timer_stop(handle.timerHandle), "uv_timer_stop")
-      stdlib.free(handle.timerHandle)
-    }
-  }
+  @inline def setInterval(handler: () => Unit, interval: Double): SetIntervalHandle =
+    Timer.repeat(interval.toLong)(handler)
 }
