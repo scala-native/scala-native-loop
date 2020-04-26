@@ -31,7 +31,10 @@ object RawTimers {
    *  @return A handle that can be used to cancel the timeout by passing it
    *          to [[clearTimeout]].
    */
-  @inline def setTimeout(handler: () => Unit, interval: Double): SetTimeoutHandle =
+  @inline def setTimeout(
+      handler: () => Unit,
+      interval: Double
+  ): SetTimeoutHandle =
     Timer.timeout(interval.toLong)(handler)
 
   /** Schedule `handler` for repeated execution every `interval`
@@ -42,6 +45,9 @@ object RawTimers {
    *  @return A handle that can be used to cancel the interval by passing it
    *          to [[clearInterval]].
    */
-  @inline def setInterval(handler: () => Unit, interval: Double): SetIntervalHandle =
+  @inline def setInterval(
+      handler: () => Unit,
+      interval: Double
+  ): SetIntervalHandle =
     Timer.repeat(interval.toLong)(handler)
 }

@@ -30,7 +30,7 @@ object EventLoop {
         @tailrec
         def runUv(): Unit = {
           val res = uv_run(loop, UV_RUN_ONCE)
-          if(res != 0) runUv()
+          if (res != 0) runUv()
         }
 
         scala.scalanative.runtime.loop()
@@ -49,7 +49,7 @@ object EventLoop {
 object LibUV {
   type UVHandle      = Ptr[Byte]
   type PipeHandle    = Ptr[Byte]
-  type PollHandle    = Ptr[Ptr[Byte]]
+  type PollHandle    = Ptr[Byte]
   type TCPHandle     = Ptr[Byte]
   type PrepareHandle = Ptr[Byte]
   type TimerHandle   = Ptr[Byte]
@@ -100,6 +100,8 @@ object LibUV {
   def uv_pipe_open(handle: PipeHandle, fd: Int): Int              = extern
   def uv_pipe_bind(handle: PipeHandle, socketName: CString): Int  = extern
 
+  def uv_poll_init(loop: Loop, handle: PollHandle, fd: Int): Int =
+    extern
   def uv_poll_init_socket(
       loop: Loop,
       handle: PollHandle,

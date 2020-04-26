@@ -29,7 +29,11 @@ object Timer {
     }
   }
   @inline
-  private def startTimer(timeout: Long, repeat: Long, callback: () => Unit): Timer = {
+  private def startTimer(
+      timeout: Long,
+      repeat: Long,
+      callback: () => Unit
+  ): Timer = {
     val timerHandle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
     uv_timer_init(EventLoop.loop, timerHandle)
     HandleUtils.setData(timerHandle, callback)
