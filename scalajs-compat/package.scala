@@ -26,8 +26,8 @@ package object timers {
 
   import scala.scalanative.loop.Timer
 
-  type SetTimeoutHandle = Timer 
-  type SetIntervalHandle = Timer 
+  type SetTimeoutHandle  = Timer
+  type SetIntervalHandle = Timer
 
   /** Schedule something for execution in `interval` milliseconds.
    *

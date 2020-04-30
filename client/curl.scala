@@ -5,7 +5,6 @@ import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
 import scala.concurrent._
 import scala.scalanative.runtime.Boxes
-import scala.scalanative.runtime.Intrinsics
 
 case class ResponseState(
     var code: Int = 200,
@@ -16,14 +15,11 @@ case class ResponseState(
 object Curl {
   import LibCurl._
   import LibCurlConstants._
-  import LibUV._
   import LibUVConstants._
 
   var serial = 0L
 
-  val loop                     = EventLoop.loop
-  var multi: MultiCurl         = null
-  val timerHandle: TimerHandle = malloc(uv_handle_size(UV_TIMER_T))
+  var multi: MultiCurl = null
 
   val requestPromises = mutable.Map[Long, Promise[ResponseState]]()
   val requests        = mutable.Map[Long, ResponseState]()
@@ -44,7 +40,6 @@ object Curl {
         multi_setopt_ptr(multi, TIMERFUNCTION, func_to_ptr(startTimerCB))
       println(s"timerCB: $startTimerCB")
 
-      check(uv_timer_init(loop, timerHandle), "uv_timer_init")
       initialized = true
       println("done")
     }
@@ -164,7 +159,7 @@ object Curl {
   val socketCB = new CurlSocketCallback {
     def apply(
         curl: Curl,
-        socket: Ptr[Byte],
+        socket: Int,
         action: Int,
         data: Ptr[Byte],
         socket_data: Ptr[Byte]
@@ -172,49 +167,41 @@ object Curl {
       println(s"socketCB called with action ${action}")
       val pollHandle = if (socket_data == null) {
         println(s"initializing handle for socket ${socket}")
-        val buf = malloc(uv_handle_size(UV_POLL_T)).asInstanceOf[Ptr[Ptr[Byte]]]
-        !buf = socket
-        check(uv_poll_init_socket(loop, buf, socket), "uv_poll_init_socket")
+        val poll = Poll(socket)
         check(
-          multi_assign(multi, socket, buf.asInstanceOf[Ptr[Byte]]),
+          multi_assign(multi, socket, poll.ptr),
           "multi_assign"
         )
-        buf
+        poll
       } else {
-        socket_data.asInstanceOf[Ptr[Ptr[Byte]]]
+        new Poll(socket_data)
       }
 
-      val events = action match {
-        case POLL_NONE   => None
-        case POLL_IN     => Some(UV_READABLE)
-        case POLL_OUT    => Some(UV_WRITABLE)
-        case POLL_INOUT  => Some(UV_READABLE | UV_WRITABLE)
-        case POLL_REMOVE => None
-      }
+      val readable = action == POLL_IN || action == POLL_INOUT
+      val writable = action == POLL_OUT || action == POLL_INOUT
 
-      events match {
-        case Some(ev) =>
-          println(s"starting poll with events $ev")
-          uv_poll_start(pollHandle, ev, pollCB)
-        case None =>
-          println("stopping poll")
-          uv_poll_stop(pollHandle)
-          startTimerCB(multi, 1, null)
+      if (readable || writable) {
+        println(
+          s"starting poll with readable = $readable and writable = $writable"
+        )
+        pollHandle.start(readable, writable) { (status, readable, writable) =>
+          println(
+            s"ready_for_curl fired with status $status and readable = $readable writable = $writable"
+          )
+          var actions = 0
+          if (readable) actions |= 1
+          if (writable) actions |= 2
+          val running_handles = stackalloc[Int]
+          val result =
+            multi_socket_action(multi, socket, actions, running_handles)
+          println("multi_socket_action", result)
+        }
+      } else {
+        println("stopping poll")
+        pollHandle.stop()
+        startTimerCB(multi, 1, null)
       }
       0
-    }
-  }
-
-  val pollCB = new PollCB {
-    def apply(pollHandle: PollHandle, status: Int, events: Int): Unit = {
-      println(
-        s"ready_for_curl fired with status ${status} and events ${events}"
-      )
-      val socket          = !(pollHandle.asInstanceOf[Ptr[Ptr[Byte]]])
-      val actions         = (events & 1) | (events & 2) // Whoa, nelly!
-      val running_handles = stackalloc[Int]
-      val result          = multi_socket_action(multi, socket, actions, running_handles)
-      println("multi_socket_action", result)
     }
   }
 
@@ -226,20 +213,16 @@ object Curl {
         1
       } else timeout_ms
       println("starting timer")
-      check(uv_timer_start(timerHandle, timeoutCB, time, 0), "uv_timer_start")
+      Timer.timeout(time) { () =>
+        println("in timeout callback")
+        val running_handles = stackalloc[Int]
+        multi_socket_action(multi, -1, 0, running_handles)
+        println(s"on_timer fired, ${!running_handles} sockets running")
+      }
       println("cleaning up requests")
       cleanup_requests()
       println("done")
       0
-    }
-  }
-
-  val timeoutCB = new TimerCB {
-    def apply(handle: TimerHandle): Unit = {
-      println("in timeout callback")
-      val running_handles = stackalloc[Int]
-      multi_socket_action(multi, int_to_ptr(-1), 0, running_handles)
-      println(s"on_timer fired, ${!running_handles} sockets running")
     }
   }
 
@@ -299,14 +282,6 @@ object Curl {
     Boxes.boxToPtr[Byte](Boxes.unboxToCFuncRawPtr(f))
   }
 
-  def int_to_ptr(i: Int): Ptr[Byte] = {
-    Boxes.boxToPtr[Byte](Intrinsics.castIntToRawPtr(i))
-  }
-
-  def long_to_ptr(l: Long): Ptr[Byte] = {
-    Boxes.boxToPtr[Byte](Intrinsics.castLongToRawPtr(l))
-  }
-
 }
 
 object LibCurlConstants {
@@ -349,7 +324,7 @@ object LibCurlConstants {
 
   type CurlDataCallback = CFuncPtr4[Ptr[Byte], CSize, CSize, Ptr[Byte], CSize]
   type CurlSocketCallback =
-    CFuncPtr5[Curl, Ptr[Byte], CInt, Ptr[Byte], Ptr[Byte], CInt]
+    CFuncPtr5[Curl, CInt, CInt, Ptr[Byte], Ptr[Byte], CInt]
   type CurlTimerCallback = CFuncPtr3[MultiCurl, Long, Ptr[Byte], CInt]
 
   @name("curl_global_init")
@@ -408,14 +383,14 @@ object LibCurlConstants {
   @name("curl_multi_assign")
   def multi_assign(
       multi: MultiCurl,
-      socket: Ptr[Byte],
+      socket: Int,
       socket_data: Ptr[Byte]
   ): Int = extern
 
   @name("curl_multi_socket_action")
   def multi_socket_action(
       multi: MultiCurl,
-      socket: Ptr[Byte],
+      socket: Int,
       events: Int,
       numhandles: Ptr[Int]
   ): Int = extern

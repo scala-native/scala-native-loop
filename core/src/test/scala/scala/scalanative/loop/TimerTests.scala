@@ -8,9 +8,9 @@ import scala.concurrent.Promise
 object TimerTests extends TestSuite {
   val tests = Tests {
     def now(): Duration = System.currentTimeMillis().millis
-    val d = 200.millis
+    val d               = 200.millis
     test("delay") {
-      var i = 0
+      var i         = 0
       val startTime = now()
       def checkDelay(time: Int) = {
         i += 1
@@ -25,13 +25,13 @@ object TimerTests extends TestSuite {
       } yield ()
     }
     test("repeat") {
-      var i = 0
-      val startTime = now()
-      val times = 3
-      val p = Promise[Unit]()
+      var i            = 0
+      val startTime    = now()
+      val times        = 3
+      val p            = Promise[Unit]()
       var timer: Timer = null.asInstanceOf[Timer]
       timer = Timer.repeat(d.toMillis) { () =>
-        if(i == times) {
+        if (i == times) {
           p.success(())
           timer.clear()
         } else i += 1
@@ -41,6 +41,15 @@ object TimerTests extends TestSuite {
         val took = now() - startTime
         assert(took >= d * 3)
       }
+    }
+    test("clear timeout") {
+      val handle = Timer.timeout(d.toMillis) { () =>
+        throw new Exception("This timeout should have not triggered")
+      }
+      handle.clear()
+      for {
+        () <- Timer.delay(d * 2)
+      } yield ()
     }
   }
 }
