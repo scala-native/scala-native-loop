@@ -198,7 +198,7 @@ object Curl {
         }
       } else {
         println("stopping poll")
-        pollHandle.stop()
+        pollHandle.close()
         startTimerCB(multi, 1, null)
       }
       0

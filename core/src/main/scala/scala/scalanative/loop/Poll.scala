@@ -18,6 +18,10 @@ import internals.HandleUtils
 
   def stop(): Unit = {
     uv_poll_stop(ptr)
+  }
+
+  def close(): Unit = {
+    stop()
     HandleUtils.close(ptr)
   }
 }
