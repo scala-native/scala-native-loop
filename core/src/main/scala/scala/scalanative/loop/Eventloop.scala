@@ -1,6 +1,8 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
-import scala.annotation.tailrec
+import scala.scalanative.runtime._
+import scala.scalanative.runtime.Intrinsics._
+import scala.collection.mutable
 
 object EventLoop {
   import LibUV._, LibUVConstants._
@@ -14,32 +16,28 @@ object EventLoop {
     }
   )
 
-  /**
-   * This is the implementation of the event loop
-   * that integrates with libuv. The logic is the
-   * following:
-   * - First we run all Scala futures in the default
-   *   execution context
-   * - Then in loop:
-   *   - we check if they generated IO calls on
-   *     the event loop
-   *   - If it's the case we run libuv's event loop
-   *     using UV_RUN_ONCE until there are callbacks
-   *     to execute
-   *   - We run the default execution context again
-   *     in case the callbacks generated new Futures
-   */
-  def run(): Unit = {
-    @tailrec
-    def runUv(): Unit = {
-      val res = uv_run(loop, UV_RUN_ONCE)
-      if (res != 0) runUv()
-    }
+  // Reference to the private queue of scala.scalanative.runtime.ExecutionContext
+  private val queue: mutable.ListBuffer[Runnable] = {
+    val executionContextPtr =
+      fromRawPtr[Byte](castObjectToRawPtr(ExecutionContext))
+    val queuePtr = !((executionContextPtr + 8).asInstanceOf[Ptr[Ptr[Byte]]])
+    castRawPtrToObject(toRawPtr(queuePtr))
+      .asInstanceOf[mutable.ListBuffer[Runnable]]
+  }
 
-    scala.scalanative.runtime.loop()
-    while (uv_loop_alive(loop) != 0) {
-      runUv()
-      scala.scalanative.runtime.loop()
+  def run(): Unit = {
+    while (uv_loop_alive(loop) != 0 || queue.nonEmpty) {
+      while(queue.nonEmpty) {
+        val runnable = queue.remove(0)
+        try {
+          runnable.run()
+        } catch {
+          case t: Throwable =>
+            ExecutionContext.global.reportFailure(t)
+        }
+        uv_run(loop, UV_RUN_NOWAIT)
+      }
+      uv_run(loop, UV_RUN_ONCE)
     }
   }
 }
