@@ -5,7 +5,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Promise
 
-object TimerTests extends TestSuite {
+object TimerTests extends LoopTestSuite {
   val tests = Tests {
     def now(): Duration = System.currentTimeMillis().millis
     val d               = 200.millis
