@@ -1,0 +1,18 @@
+os: linux
+dist: xenial
+language: scala
+branches:
+  only:
+    - master
+scala:
+  - 2.11.12
+jdk:
+  - openjdk8
+before_cache:
+  - find $HOME/.sbt -name "*.lock" -print -delete
+compiler: clang
+script: sbt test
+cache:
+  directories:
+    - $HOME/.sbt
+    - $HOME/.cache/coursier
