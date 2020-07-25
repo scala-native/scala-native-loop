@@ -78,8 +78,6 @@ object LibUV {
   def uv_loop_close(loop: Loop): CInt                             = extern
   def uv_is_active(handle: Ptr[Byte]): Int                        = extern
   def uv_handle_size(h_type: Int): CSize                          = extern
-  def uv_handle_get_data(handle: Ptr[Byte]): Long                 = extern
-  def uv_handle_set_data(handle: Ptr[Byte], data: Long): Unit     = extern
   def uv_req_size(r_type: Int): CSize                             = extern
   def uv_prepare_init(loop: Loop, handle: PrepareHandle): Int     = extern
   def uv_prepare_start(handle: PrepareHandle, cb: PrepareCB): Int = extern

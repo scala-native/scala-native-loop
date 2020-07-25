@@ -1,5 +1,5 @@
 os: linux
-dist: xenial
+dist: bionic
 language: scala
 branches:
   only:
@@ -10,8 +10,12 @@ jdk:
   - openjdk8
 before_cache:
   - find $HOME/.sbt -name "*.lock" -print -delete
-compiler: clang
-script: sbt test
+before_install:
+  # Install libuv
+  - sudo apt-get update
+  - sudo apt-get install -y libuv1-dev
+script:
+  - sbt test
 cache:
   directories:
     - $HOME/.sbt
