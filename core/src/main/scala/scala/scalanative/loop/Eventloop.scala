@@ -10,38 +10,38 @@ object EventLoop {
   // Schedule loop execution after main ends
   scalanative.runtime.ExecutionContext.global.execute(
     new Runnable {
-
-      /**
-       * This is the implementation of the event loop
-       * that integrates with libuv. The logic is the
-       * following:
-       * - First we run all Scala futures in the default
-       *   execution context
-       * - Then in loop:
-       *   - we check if they generated IO calls on
-       *     the event loop
-       *   - If it's the case we run libuv's event loop
-       *     using UV_RUN_ONCE until there are callbacks
-       *     to execute
-       *   - We run the default execution context again
-       *     in case the callbacks generated new Futures
-       */
-      def run(): Unit = {
-        @tailrec
-        def runUv(): Unit = {
-          val res = uv_run(loop, UV_RUN_ONCE)
-          if (res != 0) runUv()
-        }
-
-        scala.scalanative.runtime.loop()
-        while (uv_loop_alive(loop) != 0) {
-          runUv()
-          scala.scalanative.runtime.loop()
-        }
-        uv_loop_close(loop)
-      }
+      def run(): Unit = EventLoop.run()
     }
   )
+
+  /**
+   * This is the implementation of the event loop
+   * that integrates with libuv. The logic is the
+   * following:
+   * - First we run all Scala futures in the default
+   *   execution context
+   * - Then in loop:
+   *   - we check if they generated IO calls on
+   *     the event loop
+   *   - If it's the case we run libuv's event loop
+   *     using UV_RUN_ONCE until there are callbacks
+   *     to execute
+   *   - We run the default execution context again
+   *     in case the callbacks generated new Futures
+   */
+  def run(): Unit = {
+    @tailrec
+    def runUv(): Unit = {
+      val res = uv_run(loop, UV_RUN_ONCE)
+      if (res != 0) runUv()
+    }
+
+    scala.scalanative.runtime.loop()
+    while (uv_loop_alive(loop) != 0) {
+      runUv()
+      scala.scalanative.runtime.loop()
+    }
+  }
 }
 
 @link("uv")
@@ -78,8 +78,6 @@ object LibUV {
   def uv_loop_close(loop: Loop): CInt                             = extern
   def uv_is_active(handle: Ptr[Byte]): Int                        = extern
   def uv_handle_size(h_type: Int): CSize                          = extern
-  def uv_handle_get_data(handle: Ptr[Byte]): Long                 = extern
-  def uv_handle_set_data(handle: Ptr[Byte], data: Long): Unit     = extern
   def uv_req_size(r_type: Int): CSize                             = extern
   def uv_prepare_init(loop: Loop, handle: PrepareHandle): Int     = extern
   def uv_prepare_start(handle: PrepareHandle, cb: PrepareCB): Int = extern
