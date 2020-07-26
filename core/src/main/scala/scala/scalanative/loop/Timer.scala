@@ -7,7 +7,7 @@ import LibUV._, LibUVConstants._
 import scala.scalanative.unsafe.Ptr
 import internals.HandleUtils
 
-@inline class Timer private (private val ptr: Ptr[Byte]) extends AnyVal {
+@inline final class Timer private (private val ptr: Ptr[Byte]) extends AnyVal {
   def clear(): Unit = {
     uv_timer_stop(ptr)
     HandleUtils.close(ptr)
@@ -37,21 +37,30 @@ object Timer {
     val timerHandle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
     uv_timer_init(EventLoop.loop, timerHandle)
     HandleUtils.setData(timerHandle, callback)
+    val timer = new Timer(timerHandle)
+    val withClearIfTimeout: () => Unit =
+      if (repeat == 0L) { () =>
+        {
+          callback()
+          timer.clear()
+        }
+      } else callback
     uv_timer_start(timerHandle, timeoutCB, timeout, repeat)
-    new Timer(timerHandle)
+    timer
   }
 
   def delay(duration: FiniteDuration): Future[Unit] = {
     val promise = Promise[Unit]()
-    timeout(duration.toMillis)(() => promise.success(()))
+    timeout(duration)(() => promise.success(()))
     promise.future
   }
 
-  def timeout(millis: Long)(callback: () => Unit): Timer = {
-    startTimer(millis, 0L, callback)
+  def timeout(duration: FiniteDuration)(callback: () => Unit): Timer = {
+    startTimer(duration.toMillis, 0L, callback)
   }
 
-  def repeat(millis: Long)(callback: () => Unit): Timer = {
+  def repeat(duration: FiniteDuration)(callback: () => Unit): Timer = {
+    val millis = duration.toMillis
     startTimer(millis, millis, callback)
   }
 }

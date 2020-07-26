@@ -30,7 +30,7 @@ object TimerTests extends LoopTestSuite {
       val times        = 3
       val p            = Promise[Unit]()
       var timer: Timer = null.asInstanceOf[Timer]
-      timer = Timer.repeat(d.toMillis) { () =>
+      timer = Timer.repeat(d) { () =>
         if (i == times) {
           p.success(())
           timer.clear()
@@ -43,13 +43,23 @@ object TimerTests extends LoopTestSuite {
       }
     }
     test("clear timeout") {
-      val handle = Timer.timeout(d.toMillis) { () =>
+      val handle = Timer.timeout(d) { () =>
         throw new Exception("This timeout should have not triggered")
       }
       handle.clear()
       for {
         () <- Timer.delay(d * 2)
       } yield ()
+    }
+    test("close multiple times") {
+      val timer = Timer.timeout(10.millis)(() => {})
+      timer.clear()
+      timer.clear()
+      global.execute(new Runnable { def run(): Unit = timer.clear() })
+      Timer.timeout(50.millis) { () =>
+        timer.clear()
+        timer.clear()
+      }
     }
   }
 }
