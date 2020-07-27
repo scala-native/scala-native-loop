@@ -4,6 +4,7 @@ import scala.collection.mutable
 import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
 import scala.concurrent._
+import scala.concurrent.duration._
 import scala.scalanative.runtime.Boxes
 
 case class ResponseState(
@@ -213,7 +214,7 @@ object Curl {
         1
       } else timeout_ms
       println("starting timer")
-      Timer.timeout(time) { () =>
+      Timer.timeout(time.millis) { () =>
         println("in timeout callback")
         val running_handles = stackalloc[Int]
         multi_socket_action(multi, -1, 0, running_handles)

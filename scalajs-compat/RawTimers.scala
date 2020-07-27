@@ -13,6 +13,7 @@
 package scala.scalajs.js.timers
 
 import scalanative.loop.Timer
+import scala.concurrent.duration._
 
 /**
  *  <span class="badge badge-non-std" style="float: right;">Non-Standard</span>
@@ -35,7 +36,7 @@ object RawTimers {
       handler: () => Unit,
       interval: Double
   ): SetTimeoutHandle =
-    Timer.timeout(interval.toLong)(handler)
+    Timer.timeout(interval.millis)(handler)
 
   /** Schedule `handler` for repeated execution every `interval`
    *  milliseconds.
@@ -49,5 +50,5 @@ object RawTimers {
       handler: () => Unit,
       interval: Double
   ): SetIntervalHandle =
-    Timer.repeat(interval.toLong)(handler)
+    Timer.repeat(interval.millis)(handler)
 }
