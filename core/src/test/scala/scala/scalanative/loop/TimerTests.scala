@@ -60,6 +60,7 @@ object TimerTests extends LoopTestSuite {
         timer.clear()
         timer.clear()
       }
+      ()
     }
   }
 }
