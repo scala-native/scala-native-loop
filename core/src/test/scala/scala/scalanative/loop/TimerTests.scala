@@ -52,6 +52,7 @@ object TimerTests extends LoopTestSuite {
       } yield ()
     }
     test("close multiple times") {
+      val p = Promise[Unit]()
       val timer = Timer.timeout(10.millis)(() => {})
       timer.clear()
       timer.clear()
@@ -59,8 +60,9 @@ object TimerTests extends LoopTestSuite {
       Timer.timeout(50.millis) { () =>
         timer.clear()
         timer.clear()
+        p.success(())
       }
-      ()
+      p.future
     }
   }
 }
