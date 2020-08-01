@@ -3,7 +3,7 @@ package scala.scalanative.loop
 import utest._
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 
 object TimerTests extends LoopTestSuite {
   val tests = Tests {
@@ -63,6 +63,13 @@ object TimerTests extends LoopTestSuite {
         p.success(())
       }
       p.future
+    }
+    test("deadlock when futures need event loop run to unlock") {
+      var completed = false
+      def recursive(): Future[Unit] = if (!completed) Future(recursive()) else Future.successful(())
+      val r = recursive()
+      Timer.timeout(10.millis)(() => completed = true)
+      r
     }
   }
 }
