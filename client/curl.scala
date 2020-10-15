@@ -178,20 +178,20 @@ object Curl {
         new Poll(socket_data)
       }
 
-      val readable = action == POLL_IN || action == POLL_INOUT
-      val writable = action == POLL_OUT || action == POLL_INOUT
+      val in = action == POLL_IN || action == POLL_INOUT
+      val out = action == POLL_OUT || action == POLL_INOUT
 
-      if (readable || writable) {
+      if (in || out) {
         println(
-          s"starting poll with readable = $readable and writable = $writable"
+          s"starting poll with in = $in and out = $out"
         )
-        pollHandle.start(readable, writable) { (status, readable, writable) =>
+        pollHandle.start(in, out) { res =>
           println(
-            s"ready_for_curl fired with status $status and readable = $readable writable = $writable"
+            s"ready_for_curl fired with status ${res.result} and readable = ${res.readable} writable = ${res.writable}"
           )
           var actions = 0
-          if (readable) actions |= 1
-          if (writable) actions |= 2
+          if (res.readable) actions |= 1
+          if (res.writable) actions |= 2
           val running_handles = stackalloc[Int]
           val result =
             multi_socket_action(multi, socket, actions, running_handles)

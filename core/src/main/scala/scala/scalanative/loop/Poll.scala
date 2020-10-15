@@ -5,15 +5,29 @@ import LibUV._, LibUVConstants._
 import scala.scalanative.unsafe.Ptr
 import internals.HandleUtils
 
+class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
 @inline class Poll(val ptr: Ptr[Byte]) extends AnyVal {
-  def start(in: Boolean, out: Boolean)(
-      callback: (Int, Boolean, Boolean) => Unit
-  ): Unit = {
+  def start(in: Boolean, out: Boolean)(callback: RWResult => Unit): Unit = {
     HandleUtils.setData(ptr, callback)
     var events = 0
     if (out) events |= UV_WRITABLE
     if (in) events |= UV_READABLE
-    uv_poll_start(ptr, events, Poll.pollCB)
+    uv_poll_start(ptr, events, Poll.pollReadWriteCB)
+  }
+
+  def startReadWrite(callback: RWResult => Unit): Unit = {
+    HandleUtils.setData(ptr, callback)
+    uv_poll_start(ptr, UV_READABLE | UV_WRITABLE, Poll.pollReadWriteCB)
+  }
+
+  def startRead(callback: Int => Unit): Unit = {
+    HandleUtils.setData(ptr, callback)
+    uv_poll_start(ptr, UV_READABLE, Poll.pollReadCB)
+  }
+
+  def startWrite(callback: Int => Unit): Unit = {
+    HandleUtils.setData(ptr, callback)
+    uv_poll_start(ptr, UV_WRITABLE, Poll.pollWriteCB)
   }
 
   def stop(): Unit = {
@@ -23,15 +37,29 @@ import internals.HandleUtils
 }
 
 object Poll {
-  private val pollCB = new PollCB {
+  private val pollReadWriteCB = new PollCB {
     def apply(handle: PollHandle, status: Int, events: Int): Unit = {
       val callback =
-        HandleUtils.getData[(Int, Boolean, Boolean) => Unit](handle)
+        HandleUtils.getData[RWResult => Unit](handle)
       callback.apply(
-        status,
-        (events & UV_READABLE) != 0,
-        (events & UV_WRITABLE) != 0
+        new RWResult(
+          result = status,
+          readable = (events & UV_READABLE) != 0,
+          writable = (events & UV_WRITABLE) != 0
+        )
       )
+    }
+  }
+  private val pollReadCB = new PollCB {
+    def apply(handle: PollHandle, status: Int, events: Int): Unit = {
+      val callback = HandleUtils.getData[Int => Unit](handle)
+      if ((events & UV_READABLE) != 0) callback.apply(status)
+    }
+  }
+  private val pollWriteCB = new PollCB {
+    def apply(handle: PollHandle, status: Int, events: Int): Unit = {
+      val callback = HandleUtils.getData[Int => Unit](handle)
+      if ((events & UV_WRITABLE) != 0) callback.apply(status)
     }
   }
 
