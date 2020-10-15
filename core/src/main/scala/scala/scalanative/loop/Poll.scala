@@ -5,8 +5,16 @@ import LibUV._, LibUVConstants._
 import scala.scalanative.unsafe.Ptr
 import internals.HandleUtils
 
-class RWResult(val result: Int, val readable: Boolean, val writeable: Boolean)
+class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
 @inline class Poll(val ptr: Ptr[Byte]) extends AnyVal {
+  def start(in: Boolean, out: Boolean)(callback: RWResult => Unit): Unit = {
+    HandleUtils.setData(ptr, callback)
+    var events = 0
+    if (out) events |= UV_WRITABLE
+    if (in) events |= UV_READABLE
+    uv_poll_start(ptr, events, Poll.pollReadWriteCB)
+  }
+
   def startReadWrite(callback: RWResult => Unit): Unit = {
     HandleUtils.setData(ptr, callback)
     uv_poll_start(ptr, UV_READABLE | UV_WRITABLE, Poll.pollReadWriteCB)
@@ -37,7 +45,7 @@ object Poll {
         new RWResult(
           result = status,
           readable = (events & UV_READABLE) != 0,
-          writeable = (events & UV_WRITABLE) != 0
+          writable = (events & UV_WRITABLE) != 0
         )
       )
     }
