@@ -32,6 +32,10 @@ class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
 
   def stop(): Unit = {
     uv_poll_stop(ptr)
+  }
+
+  def close(): Unit = {
+    stop()
     HandleUtils.close(ptr)
   }
 }
