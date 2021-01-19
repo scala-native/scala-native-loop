@@ -37,30 +37,24 @@ class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
 }
 
 object Poll {
-  private val pollReadWriteCB = new PollCB {
-    def apply(handle: PollHandle, status: Int, events: Int): Unit = {
-      val callback =
-        HandleUtils.getData[RWResult => Unit](handle)
-      callback.apply(
-        new RWResult(
-          result = status,
-          readable = (events & UV_READABLE) != 0,
-          writable = (events & UV_WRITABLE) != 0
-        )
+  private val pollReadWriteCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+    val callback =
+      HandleUtils.getData[RWResult => Unit](handle)
+    callback.apply(
+      new RWResult(
+        result = status,
+        readable = (events & UV_READABLE) != 0,
+        writable = (events & UV_WRITABLE) != 0
       )
-    }
+    )
   }
-  private val pollReadCB = new PollCB {
-    def apply(handle: PollHandle, status: Int, events: Int): Unit = {
-      val callback = HandleUtils.getData[Int => Unit](handle)
-      if ((events & UV_READABLE) != 0) callback.apply(status)
-    }
+  private val pollReadCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+    val callback = HandleUtils.getData[Int => Unit](handle)
+    if ((events & UV_READABLE) != 0) callback.apply(status)
   }
-  private val pollWriteCB = new PollCB {
-    def apply(handle: PollHandle, status: Int, events: Int): Unit = {
-      val callback = HandleUtils.getData[Int => Unit](handle)
-      if ((events & UV_WRITABLE) != 0) callback.apply(status)
-    }
+  private val pollWriteCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+    val callback = HandleUtils.getData[Int => Unit](handle)
+    if ((events & UV_WRITABLE) != 0) callback.apply(status)
   }
 
   private lazy val size = uv_handle_size(UV_POLL_T)

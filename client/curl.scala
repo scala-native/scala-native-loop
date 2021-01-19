@@ -1,11 +1,11 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
+import scala.scalanative.unsigned._
 import scala.collection.mutable
 import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.scalanative.runtime.Boxes
 
 case class ResponseState(
     var code: Int = 200,
@@ -115,116 +115,108 @@ object Curl {
     promise.future
   }
 
-  val dataCB = new CurlDataCallback {
-    def apply(
+  val dataCB: CurlDataCallback =(
         ptr: Ptr[Byte],
         size: CSize,
         nmemb: CSize,
         data: Ptr[Byte]
-    ): CSize = {
-      val serial = !(data.asInstanceOf[Ptr[Long]])
-      val len    = stackalloc[Double]
-      !len = 0
-      val strData = bufferToString(ptr, size, nmemb)
-      println(s"req $serial: got data of size ${size} x ${nmemb}")
+    ) => {
+    val serial = !(data.asInstanceOf[Ptr[Long]])
+    val len    = stackalloc[Double]
+    !len = 0
+    val strData = bufferToString(ptr, size, nmemb)
+    println(s"req $serial: got data of size ${size} x ${nmemb}")
 
-      val resp = requests(serial)
-      resp.body = resp.body + strData
-      requests(serial) = resp
+    val resp = requests(serial)
+    resp.body = resp.body + strData
+    requests(serial) = resp
 
-      return size * nmemb
-    }
+    size * nmemb
   }
 
-  val headerCB = new CurlDataCallback {
-    def apply(
+  val headerCB: CurlDataCallback = (
         ptr: Ptr[Byte],
         size: CSize,
         nmemb: CSize,
         data: Ptr[Byte]
-    ): CSize = {
-      val serial = !(data.asInstanceOf[Ptr[Long]])
-      val len    = stackalloc[Double]
-      !len = 0
-      val strData = bufferToString(ptr, size, nmemb)
-      println(s"req $serial: got header line of size ${size} x ${nmemb}")
+    )=> {
+    val serial = !(data.asInstanceOf[Ptr[Long]])
+    val len    = stackalloc[Double]
+    !len = 0
+    val strData = bufferToString(ptr, size, nmemb)
+    println(s"req $serial: got header line of size ${size} x ${nmemb}")
 
-      val resp = requests(serial)
-      resp.body = resp.body + strData
-      requests(serial) = resp
+    val resp = requests(serial)
+    resp.body = resp.body + strData
+    requests(serial) = resp
 
-      return size * nmemb
-    }
+    size * nmemb
   }
 
-  val socketCB = new CurlSocketCallback {
-    def apply(
-        curl: Curl,
-        socket: Int,
-        action: Int,
-        data: Ptr[Byte],
-        socket_data: Ptr[Byte]
-    ): Int = {
-      println(s"socketCB called with action ${action}")
-      val pollHandle = if (socket_data == null) {
-        println(s"initializing handle for socket ${socket}")
-        val poll = Poll(socket)
-        check(
-          multi_assign(multi, socket, poll.ptr),
-          "multi_assign"
-        )
-        poll
-      } else {
-        new Poll(socket_data)
-      }
+  val socketCB: CurlSocketCallback = (
+      curl: Curl,
+      socket: Int,
+      action: Int,
+      data: Ptr[Byte],
+      socket_data: Ptr[Byte]
+  ) => {
+    println(s"socketCB called with action ${action}")
+    val pollHandle = if (socket_data == null) {
+      println(s"initializing handle for socket ${socket}")
+      val poll = Poll(socket)
+      check(
+        multi_assign(multi, socket, poll.ptr),
+        "multi_assign"
+      )
+      poll
+    } else {
+      new Poll(socket_data)
+    }
 
-      val in = action == POLL_IN || action == POLL_INOUT
-      val out = action == POLL_OUT || action == POLL_INOUT
+    val in  = action == POLL_IN || action == POLL_INOUT
+    val out = action == POLL_OUT || action == POLL_INOUT
 
-      if (in || out) {
+    if (in || out) {
+      println(
+        s"starting poll with in = $in and out = $out"
+      )
+      pollHandle.start(in, out) { res =>
         println(
-          s"starting poll with in = $in and out = $out"
+          s"ready_for_curl fired with status ${res.result} and readable = ${res.readable} writable = ${res.writable}"
         )
-        pollHandle.start(in, out) { res =>
-          println(
-            s"ready_for_curl fired with status ${res.result} and readable = ${res.readable} writable = ${res.writable}"
-          )
-          var actions = 0
-          if (res.readable) actions |= 1
-          if (res.writable) actions |= 2
-          val running_handles = stackalloc[Int]
-          val result =
-            multi_socket_action(multi, socket, actions, running_handles)
-          println("multi_socket_action", result)
-        }
-      } else {
-        println("stopping poll")
-        pollHandle.stop()
-        startTimerCB(multi, 1, null)
+        var actions = 0
+        if (res.readable) actions |= 1
+        if (res.writable) actions |= 2
+        val running_handles = stackalloc[Int]
+        val result =
+          multi_socket_action(multi, socket, actions, running_handles)
+        println("multi_socket_action", result)
       }
-      0
+    } else {
+      println("stopping poll")
+      pollHandle.stop()
+      startTimerCB(multi, 1, null)
     }
+    0
   }
 
-  val startTimerCB = new CurlTimerCallback {
-    def apply(curl: MultiCurl, timeout_ms: Long, data: Ptr[Byte]): Int = {
-      println(s"start_timer called with timeout ${timeout_ms} ms")
-      val time = if (timeout_ms < 1) {
-        println("setting effective timeout to 1")
-        1
-      } else timeout_ms
-      println("starting timer")
-      Timer.timeout(time.millis) { () =>
-        println("in timeout callback")
-        val running_handles = stackalloc[Int]
-        multi_socket_action(multi, -1, 0, running_handles)
-        println(s"on_timer fired, ${!running_handles} sockets running")
-      }
-      println("cleaning up requests")
-      cleanup_requests()
-      println("done")
-      0
+  val startTimerCB: CurlTimerCallback = (curl: MultiCurl, timeout_ms: Long, data: Ptr[Byte]) => {
+    println(s"start_timer called with timeout ${timeout_ms} ms")
+    val time = if (timeout_ms < 1) {
+      println("setting effective timeout to 1")
+      1
+    } else timeout_ms
+    println("starting timer")
+    Timer.timeout(time.millis) { () =>
+      println("in timeout callback")
+      val running_handles = stackalloc[Int]
+      multi_socket_action(multi, -1, 0, running_handles)
+      println(s"on_timer fired, ${!running_handles} sockets running")
     }
+    println("cleaning up requests")
+    cleanup_requests()
+    println("done")
+    0
   }
 
   def cleanup_requests(): Unit = {
@@ -262,8 +254,8 @@ object Curl {
 
   def bufferToString(ptr: Ptr[Byte], size: CSize, nmemb: CSize): String = {
     val byteSize = size * nmemb
-    val buffer   = malloc(byteSize + 1)
-    strncpy(buffer, ptr, byteSize + 1)
+    val buffer   = malloc(byteSize + 1L.toULong)
+    strncpy(buffer, ptr, byteSize + 1L.toULong)
     val res = fromCString(buffer)
     free(buffer)
     return (res)
@@ -279,8 +271,8 @@ object Curl {
       curl_easy_setopt(curl, option, toCVarArgList(parameters.toSeq))
   }
 
-  def func_to_ptr(f: Object): Ptr[Byte] = {
-    Boxes.boxToPtr[Byte](Boxes.unboxToCFuncRawPtr(f))
+  def func_to_ptr(f: CFuncPtr): Ptr[Byte] = {
+    CFuncPtr.toPtr(f)
   }
 
 }

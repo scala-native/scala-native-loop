@@ -1,5 +1,6 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
+import scala.scalanative.unsigned._
 import scala.scalanative.libc.stdlib
 
 import scala.collection.mutable
@@ -18,7 +19,7 @@ case class Handle(serial: Long, handle: Ptr[Byte]) {
   }
 
   def streamUntilDone(handler: StreamIO.ItemHandler): Future[Long] = {
-    val promise = Promise[Long]
+    val promise = Promise[Long]()
 
     val itemHandler: StreamIO.ItemHandler = (data, handle, id) =>
       try {
@@ -80,7 +81,7 @@ object StreamIO {
 
   val promises = mutable.HashMap[Long, Promise[Long]]()
   def streamUntilDone(fd: Int)(handler: ItemHandler): Future[Long] = {
-    val promise = Promise[Long]
+    val promise = Promise[Long]()
 
     val itemHandler: ItemHandler = (data, handle, id) =>
       try {
@@ -95,32 +96,29 @@ object StreamIO {
     promise.future
   }
 
-  val allocCB = new AllocCB {
-    def apply(client: PipeHandle, size: CSize, buffer: Ptr[Buffer]): Unit = {
-      val buf = stdlib.malloc(4096)
-      buffer._1 = buf
-      buffer._2 = 4096
-    }
+  val allocCB: AllocCB = (client: PipeHandle, size: CSize, buffer: Ptr[Buffer]) => {
+    val buf = stdlib.malloc(4096L.toULong)
+    buffer._1 = buf
+    buffer._2 = 4096L.toULong
   }
 
-  val readCB = new ReadCB {
-    def apply(handle: PipeHandle, size: CSize, buffer: Ptr[Buffer]): Unit = {
-      val pipe_data = handle.asInstanceOf[Ptr[Int]]
-      val pipeId    = !pipe_data
-      if (size < 0) {
-        val doneHandler = streams(pipeId)._2
-        doneHandler(handle, pipeId)
-        streams.remove(pipeId)
-      } else {
-        val data = bytesToString(buffer._1, size)
-        stdlib.free(buffer._1)
-        val itemHandler = streams(pipeId)._1
-        itemHandler(data, handle, pipeId)
-      }
+  val readCB: ReadCB = (handle: PipeHandle, size: CSSize, buffer: Ptr[Buffer]) => {
+    val pipe_data = handle.asInstanceOf[Ptr[Int]]
+    val pipeId    = !pipe_data
+    if (size < 0L) {
+      val doneHandler = streams(pipeId)._2
+      doneHandler(handle, pipeId)
+      streams.remove(pipeId)
+    } else {
+      val data = bytesToString(buffer._1, size)
+      stdlib.free(buffer._1)
+      val itemHandler = streams(pipeId)._1
+      itemHandler(data, handle, pipeId)
     }
+    ()
   }
 
-  def bytesToString(data: Ptr[Byte], len: Long): String = {
+  def bytesToString(data: Ptr[Byte], len: CSSize): String = {
     val bytes = new Array[Byte](len.toInt)
     var c     = 0
     while (c < len) {

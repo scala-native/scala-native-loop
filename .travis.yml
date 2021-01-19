@@ -14,7 +14,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y libuv1-dev
 script:
-  - sbt compile test
+  - sbt +compile +test
 cache:
   directories:
     - $HOME/.sbt

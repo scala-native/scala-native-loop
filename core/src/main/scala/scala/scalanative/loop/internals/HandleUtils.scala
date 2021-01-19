@@ -33,10 +33,8 @@ private[loop] object HandleUtils {
       !ptrOfPtr = null
     }
   }
-  private val onCloseCB = new CloseCB {
-    def apply(handle: UVHandle): Unit = {
-      stdlib.free(handle)
-    }
+  private val onCloseCB: CloseCB = (handle: UVHandle) => {
+    stdlib.free(handle)
   }
   @inline def close(handle: Ptr[Byte]): Unit = {
     if(getData(handle) != null) {

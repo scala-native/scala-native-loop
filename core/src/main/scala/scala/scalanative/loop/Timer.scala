@@ -15,18 +15,13 @@ import internals.HandleUtils
 }
 
 object Timer {
-  private val timeoutCB = new TimerCB {
-    def apply(handle: TimerHandle): Unit = {
-      val callback = HandleUtils.getData[() => Unit](handle)
-      callback.apply()
-      new Timer(handle)
-    }
+  private val timeoutCB: TimerCB = (handle: TimerHandle) => {
+    val callback = HandleUtils.getData[() => Unit](handle)
+    callback.apply()
   }
-  private val repeatCB = new TimerCB {
-    def apply(handle: TimerHandle): Unit = {
-      val callback = HandleUtils.getData[() => Unit](handle)
-      callback.apply()
-    }
+  private val repeatCB: TimerCB = (handle: TimerHandle) => {
+    val callback = HandleUtils.getData[() => Unit](handle)
+    callback.apply()
   }
   @inline
   private def startTimer(

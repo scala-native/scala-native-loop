@@ -1,5 +1,6 @@
 package scala.scalanative.loop
 import scala.scalanative.unsafe._
+import scala.scalanative.unsigned._
 import scala.collection.mutable
 import scala.scalanative.libc.stdlib._
 import scala.scalanative.libc.string._
@@ -41,7 +42,7 @@ object Server {
     val buffer = malloc(sizeof[Buffer]).asInstanceOf[Ptr[Buffer]]
     Zone { implicit z =>
       val temp_resp = toCString(s)
-      val resp_len  = strlen(temp_resp) + 1
+      val resp_len  = strlen(temp_resp) + 1L.toULong
       buffer._1 = malloc(resp_len)
       buffer._2 = resp_len
       strncpy(buffer._1, temp_resp, resp_len)
@@ -51,7 +52,7 @@ object Server {
     serial += 1
     val id = serial
     !(writeReq.asInstanceOf[Ptr[Long]]) = id
-    val promise = Promise[Unit]
+    val promise = Promise[Unit]()
     writes(id) = (promise, buffer)
     check(uv_write(writeReq, client, buffer, 1, onWrite), "uv_write")
     promise.future
@@ -64,7 +65,7 @@ object Server {
 
   def init(port: Int)(handler: RequestHandler): Unit = {
     listeners(port) = handler
-    val addr = malloc(64)
+    val addr = malloc(64L.toULong)
     check(uv_ip4_addr(c"0.0.0.0", 9999, addr), "uv_ip4_addr")
     val server = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
     check(uv_tcp_init(EventLoop.loop, server), "uv_tcp_init")
@@ -75,64 +76,58 @@ object Server {
     println(s"callbacks: ${onConnect}, ${onAlloc}, ${onRead}, ${onWrite}")
   }
 
-  val onConnect = new ConnectionCB {
-    def apply(server: TCPHandle, status: Int): Unit = {
-      val port = !(server.asInstanceOf[Ptr[Long]])
-      println(s"connection incoming on port $port with status $status")
-      val client  = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
-      val handler = listeners(port)
+  val onConnect: ConnectionCB = (server: TCPHandle, status: Int) => {
+    val port = !(server.asInstanceOf[Ptr[Long]])
+    println(s"connection incoming on port $port with status $status")
+    val client  = malloc(uv_handle_size(UV_TCP_T)).asInstanceOf[TCPHandle]
+    val handler = listeners(port)
 
-      val state = malloc(sizeof[ConnectionState])
-        .asInstanceOf[Ptr[ConnectionState]]
-      serial += 1
-      val id = serial
+    val state = malloc(sizeof[ConnectionState])
+      .asInstanceOf[Ptr[ConnectionState]]
+    serial += 1
+    val id = serial
 
-      state._1 = id
-      state._2 = client
-      state._3 = Parser.initConnection(id) { r => handler(r, client) }
-      !(client.asInstanceOf[Ptr[Ptr[Byte]]]) = state.asInstanceOf[Ptr[Byte]]
+    state._1 = id
+    state._2 = client
+    state._3 = Parser.initConnection(id) { r => handler(r, client) }
+    !(client.asInstanceOf[Ptr[Ptr[Byte]]]) = state.asInstanceOf[Ptr[Byte]]
 
-      uv_tcp_init(EventLoop.loop, client)
-      uv_accept(server, client)
-      uv_read_start(client, onAlloc, onRead)
-    }
+    uv_tcp_init(EventLoop.loop, client)
+    uv_accept(server, client)
+    uv_read_start(client, onAlloc, onRead)
+    ()
   }
 
-  val onAlloc = new AllocCB {
-    def apply(handle: TCPHandle, size: CSize, buffer: Ptr[Buffer]): Unit = {
-      val buf = malloc(4096)
-      buf(4095) = 0
-      buffer._1 = buf
-      buffer._2 = 4095
-    }
+  val onAlloc: AllocCB = (handle: TCPHandle, size: CSize, buffer: Ptr[Buffer]) => {
+    val buf = malloc(4096L.toULong)
+    buf(4095) = 0.toByte
+    buffer._1 = buf
+    buffer._2 = 4095L.toULong
   }
 
-  val onRead = new ReadCB {
-    def apply(handle: TCPHandle, size: CSize, buffer: Ptr[Buffer]): Unit = {
-      val state_ptr  = handle.asInstanceOf[Ptr[Ptr[ConnectionState]]]
-      val parser     = (!state_ptr)._3
-      val message_id = (!state_ptr)._1
-      println(s"conn $message_id: read message of size $size")
+  val onRead: ReadCB = (handle: TCPHandle, size: CSSize, buffer: Ptr[Buffer]) => {
+    val state_ptr  = handle.asInstanceOf[Ptr[Ptr[ConnectionState]]]
+    val parser     = (!state_ptr)._3
+    val message_id = (!state_ptr)._1
+    println(s"conn $message_id: read message of size $size")
 
-      if (size < 0) {
-        uv_close(handle, null)
-        free(buffer._1)
-      } else {
-        HttpParser.http_parser_execute(parser, parserSettings, buffer._1, size)
-        free(buffer._1)
-      }
-    }
-  }
-
-  val onWrite = new WriteCB {
-    def apply(writeReq: WriteReq, status: Int): Unit = {
-      val id = !(writeReq.asInstanceOf[Ptr[Long]])
-      println(s"write $id completed")
-      val (promise, buffer) = writes.remove(id).get
+    if (size < 0L) {
+      uv_close(handle, null)
       free(buffer._1)
-      free(buffer.asInstanceOf[Ptr[Byte]])
-      free(writeReq.asInstanceOf[Ptr[Byte]])
-      promise.success(())
+    } else {
+      HttpParser.http_parser_execute(parser, parserSettings, buffer._1, size)
+      free(buffer._1)
     }
+  }
+
+  val onWrite: WriteCB = (writeReq: WriteReq, status: Int) => {
+    val id = !(writeReq.asInstanceOf[Ptr[Long]])
+    println(s"write $id completed")
+    val (promise, buffer) = writes.remove(id).get
+    free(buffer._1)
+    free(buffer.asInstanceOf[Ptr[Byte]])
+    free(writeReq.asInstanceOf[Ptr[Byte]])
+    promise.success(())
+    ()
   }
 }
