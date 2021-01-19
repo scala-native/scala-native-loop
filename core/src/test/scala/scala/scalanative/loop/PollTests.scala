@@ -2,6 +2,7 @@ package scala.scalanative.loop
 
 import utest._
 import scala.scalanative.unsafe._
+import scala.scalanative.unsigned._
 import scala.scalanative.posix.unistd._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
@@ -31,7 +32,7 @@ object PollTests extends LoopTestSuite {
             throw new Exception("Poll result != 0")
           }
           val buf       = stackalloc[Byte]
-          val bytesRead = read(r, buf, 1)
+          val bytesRead = read(r, buf, 1L.toULong)
           assert(bytesRead == 1)
           assert(buf(0) == byte)
           promise.success(())
@@ -39,7 +40,7 @@ object PollTests extends LoopTestSuite {
         }
         val buf = stackalloc[Byte]
         buf(0) = byte
-        val bytesWrote = write(w, buf, 1)
+        val bytesWrote = write(w, buf, 1L.toULong)
         assert(bytesWrote == 1)
         promise.future
       }

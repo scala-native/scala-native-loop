@@ -31,76 +31,66 @@ object Parser {
     parser
   }
 
-  val onUrl = new DataCB {
-    def apply(p: Ptr[Parser], data: CString, len: Long): Int = {
-      val url = bytesToString(data, len)
-      println(s"got url: $url")
-      // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
-      val message_id = p._8
-      val m          = p._6
-      val method     = fromCString(http_method_str(m))
-      println(s"method: $method ($m), request id:$message_id")
-      requests(message_id) = RequestState(url, method)
-      0
-    }
+  val onUrl: DataCB = (p: Ptr[Parser], data: CString, len: Long) => {
+    val url = bytesToString(data, len)
+    println(s"got url: $url")
+    // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
+    val message_id = p._8
+    val m          = p._6
+    val method     = fromCString(http_method_str(m))
+    println(s"method: $method ($m), request id:$message_id")
+    requests(message_id) = RequestState(url, method)
+    0
   }
 
-  val onHeaderKey = new DataCB {
-    def apply(p: Ptr[Parser], data: CString, len: Long): Int = {
-      val k = bytesToString(data, len)
-      println(s"got key: $k")
-      // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
-      // val message_id = state._1
-      val message_id = p._8
-      val request    = requests(message_id)
+  val onHeaderKey: DataCB = (p: Ptr[Parser], data: CString, len: Long) => {
+    val k = bytesToString(data, len)
+    println(s"got key: $k")
+    // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
+    // val message_id = state._1
+    val message_id = p._8
+    val request    = requests(message_id)
 
-      request.lastHeader = k
-      requests(message_id) = request
-      0
-    }
+    request.lastHeader = k
+    requests(message_id) = request
+    0
   }
 
-  val onHeaderValue = new DataCB {
-    def apply(p: Ptr[Parser], data: CString, len: Long): Int = {
-      val v = bytesToString(data, len)
-      println(s"got value: $v")
-      // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
-      // val message_id = state._1
-      val message_id = p._8
-      val request    = requests(message_id)
+  val onHeaderValue: DataCB = (p: Ptr[Parser], data: CString, len: Long) => {
+    val v = bytesToString(data, len)
+    println(s"got value: $v")
+    // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
+    // val message_id = state._1
+    val message_id = p._8
+    val request    = requests(message_id)
 
-      request.headerMap(request.lastHeader) = v
-      requests(message_id) = request
-      0
-    }
+    request.headerMap(request.lastHeader) = v
+    requests(message_id) = request
+    0
   }
 
-  val onBody = new DataCB {
-    def apply(p: Ptr[Parser], data: CString, len: Long): Int = {
-      // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
-      // val message_id = state._1
-      val message_id = p._8
-      val request    = requests(message_id)
+  val onBody: DataCB = (p: Ptr[Parser], data: CString, len: Long) => {
+    // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
+    // val message_id = state._1
+    val message_id = p._8
+    val request    = requests(message_id)
 
-      val b = bytesToString(data, len)
-      request.body += b
-      requests(message_id) = request
-      0
-    }
+    val b = bytesToString(data, len)
+    request.body += b
+    requests(message_id) = request
+    0
   }
 
-  val onComplete = new HttpCB {
-    def apply(p: Ptr[Parser]): Int = {
-      // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
-      // val message_id = state._1
-      val message_id = p._8
-      val request    = requests(message_id)
-      val callback   = connections(message_id)
-      callback(request)
-      // handleRequest(message_id,tcpHandle,request)
-      // println(s"message ${message_id} done! $request")
-      0
-    }
+  val onComplete: HttpCB = (p: Ptr[Parser]) => {
+    // val state = (p._8).asInstanceOf[Ptr[ConnectionState]]
+    // val message_id = state._1
+    val message_id = p._8
+    val request    = requests(message_id)
+    val callback   = connections(message_id)
+    callback(request)
+    // handleRequest(message_id,tcpHandle,request)
+    // println(s"message ${message_id} done! $request")
+    0
   }
 
   def bytesToString(data: Ptr[Byte], len: Long): String = {
@@ -158,7 +148,7 @@ object HttpParser {
       p: Ptr[Parser],
       s: Ptr[ParserSettings],
       data: Ptr[Byte],
-      len: Long
+      len: CSSize
   ): Long                                     = extern
   def http_method_str(method: CChar): CString = extern
 

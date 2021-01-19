@@ -3,9 +3,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 inThisBuild(
   Seq(
     organization := "com.github.lolgab",
-    version := "0.1.1"
+    version := "0.2.0-SNAPSHOT"
   )
-
 )
 
 val publishSettings = Seq(
@@ -40,9 +39,13 @@ val noPublishSettings = Seq(
   skip in publish := true
 )
 
+val scala213 = "2.13.4"
+val scala212 = "2.12.13"
+val scala211 = "2.11.12"
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.11.12",
+  scalaVersion := scala213,
+  crossScalaVersions := Seq(scala213, scala212, scala211),
   scalacOptions ++= Seq(
     "-deprecation",
     "-encoding",
@@ -50,10 +53,10 @@ lazy val commonSettings = Seq(
     "-feature",
     "-unchecked",
     "-Xfatal-warnings",
-    "-Ywarn-unused-import"
+    "-Wunused:imports"
   ),
   Compile / doc / sources := Seq.empty,
-  libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.5" % Test,
+  libraryDependencies += "com.github.lolgab" %%% "utest" % "0.7.5" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
   Test / nativeLinkStubs := true,
 )
