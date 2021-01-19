@@ -100,7 +100,7 @@ object Server {
 
   val onAlloc: AllocCB = (handle: TCPHandle, size: CSize, buffer: Ptr[Buffer]) => {
     val buf = malloc(4096L.toULong)
-    buf(4095L.toULong) = 0
+    buf(4095) = 0.toByte
     buffer._1 = buf
     buffer._2 = 4095L.toULong
   }

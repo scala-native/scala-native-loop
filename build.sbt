@@ -3,7 +3,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 inThisBuild(
   Seq(
     organization := "com.github.lolgab",
-    version := "0.2.0-SNAPSHOT"
+    version := "0.2.0-SNAPSHOT",
+    scalaVersion := scala212
   )
 )
 
@@ -53,7 +54,7 @@ lazy val commonSettings = Seq(
     "-feature",
     "-unchecked",
     "-Xfatal-warnings",
-    "-Wunused:imports"
+    // "-Wunused:imports"
   ),
   Compile / doc / sources := Seq.empty,
   libraryDependencies += "com.github.lolgab" %%% "utest" % "0.7.5" % Test,
