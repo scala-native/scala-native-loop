@@ -3,7 +3,7 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 inThisBuild(
   Seq(
     organization := "com.github.lolgab",
-    version := "0.2.0-SNAPSHOT",
+    version := "0.2.0",
     scalaVersion := scala212
   )
 )
