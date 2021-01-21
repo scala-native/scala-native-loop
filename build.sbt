@@ -19,8 +19,8 @@ val publishSettings = Seq(
   publishTo := sonatypePublishToBundle.value,
   scmInfo := Some(
     ScmInfo(
-      url("https://github.com/lolgab/scala-native-loop"),
-      "scm:git:git@github.com:lolgab/scala-native-loop.git"
+      url("https://github.com/scala-native/scala-native-loop"),
+      "scm:git:git@github.com:scala-native/scala-native-loop.git"
     )
   ),
   developers := List(
@@ -57,7 +57,7 @@ lazy val commonSettings = Seq(
     // "-Wunused:imports"
   ),
   Compile / doc / sources := Seq.empty,
-  libraryDependencies += "com.github.lolgab" %%% "utest" % "0.7.5" % Test,
+  libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.6" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
   Test / nativeLinkStubs := true,
 )
