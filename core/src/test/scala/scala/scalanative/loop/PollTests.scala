@@ -31,14 +31,14 @@ object PollTests extends LoopTestSuite {
           if (i != 0) {
             throw new Exception("Poll result != 0")
           }
-          val buf       = stackalloc[Byte]
+          val buf       = stackalloc[Byte]()
           val bytesRead = read(r, buf, 1L.toULong)
           assert(bytesRead == 1)
           assert(buf(0) == byte)
           promise.success(())
           poll.stop()
         }
-        val buf = stackalloc[Byte]
+        val buf = stackalloc[Byte]()
         buf(0) = byte
         val bytesWrote = write(w, buf, 1L.toULong)
         assert(bytesWrote == 1)
