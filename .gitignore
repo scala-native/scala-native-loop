@@ -5,3 +5,4 @@ examples/*/target
 lowered.hnir
 .metals
 .bloop
+.bsp
