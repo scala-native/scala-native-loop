@@ -1,4 +1,4 @@
-val scala3 = "3.1.0"
+val scala3 = "3.1.1"
 val scala213 = "2.13.4"
 val scala212 = "2.12.13"
 val scala211 = "2.11.12"
@@ -6,7 +6,7 @@ val scala211 = "2.11.12"
 inThisBuild(
   Seq(
     organization := "com.github.lolgab",
-    version := "0.2.1-SNAPSHOT",
+    version := "0.2.1",
     scalaVersion := scala213,
     crossScalaVersions := Seq(scala3, scala213, scala212, scala211),
   )
@@ -54,7 +54,6 @@ lazy val commonSettings = Seq(
     "-Xfatal-warnings",
     // "-Wunused:imports"
   ),
-  Compile / doc / sources := Seq.empty,
   libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.11" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
   Test / nativeLinkStubs := true,
