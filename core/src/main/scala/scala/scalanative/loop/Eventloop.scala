@@ -66,7 +66,9 @@ object LibUV {
   type PrepareCB    = CFuncPtr1[PrepareHandle, Unit]
   type ShutdownCB   = CFuncPtr2[ShutdownReq, Int, Unit]
   type CloseCB      = CFuncPtr1[UVHandle, Unit]
-  type PollCB       = CFuncPtr3[PollHandle, Int, Int, Unit]
+  // Workaround for https://github.com/scala-native/scala-native/issues/2550
+  // Use `Int` instead of `Integer` once fixed
+  type PollCB       = CFuncPtr3[PollHandle, Integer, Integer, Unit]
   type TimerCB      = CFuncPtr1[TimerHandle, Unit]
   type FSCB         = CFuncPtr1[FSReq, Unit]
 

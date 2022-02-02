@@ -122,7 +122,7 @@ object Curl {
         data: Ptr[Byte]
     ) => {
     val serial = !(data.asInstanceOf[Ptr[Long]])
-    val len    = stackalloc[Double]
+    val len    = stackalloc[Double]()
     !len = 0
     val strData = bufferToString(ptr, size, nmemb)
     println(s"req $serial: got data of size ${size} x ${nmemb}")
@@ -141,7 +141,7 @@ object Curl {
         data: Ptr[Byte]
     )=> {
     val serial = !(data.asInstanceOf[Ptr[Long]])
-    val len    = stackalloc[Double]
+    val len    = stackalloc[Double]()
     !len = 0
     val strData = bufferToString(ptr, size, nmemb)
     println(s"req $serial: got header line of size ${size} x ${nmemb}")
@@ -187,10 +187,10 @@ object Curl {
         var actions = 0
         if (res.readable) actions |= 1
         if (res.writable) actions |= 2
-        val running_handles = stackalloc[Int]
+        val running_handles = stackalloc[Int]()
         val result =
           multi_socket_action(multi, socket, actions, running_handles)
-        println("multi_socket_action", result)
+        println(("multi_socket_action", result))
       }
     } else {
       println("stopping poll")
@@ -209,7 +209,7 @@ object Curl {
     println("starting timer")
     Timer.timeout(time.millis) { () =>
       println("in timeout callback")
-      val running_handles = stackalloc[Int]
+      val running_handles = stackalloc[Int]()
       multi_socket_action(multi, -1, 0, running_handles)
       println(s"on_timer fired, ${!running_handles} sockets running")
     }
@@ -220,8 +220,8 @@ object Curl {
   }
 
   def cleanup_requests(): Unit = {
-    val messages                  = stackalloc[Int]
-    val privateDataPtr            = stackalloc[Ptr[Long]]
+    val messages                  = stackalloc[Int]()
+    val privateDataPtr            = stackalloc[Ptr[Long]]()
     var message: Ptr[CurlMessage] = multi_info_read(multi, messages)
     while (message != null) {
       println(
