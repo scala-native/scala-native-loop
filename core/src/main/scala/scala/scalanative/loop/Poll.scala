@@ -37,7 +37,11 @@ class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
 }
 
 object Poll {
-  private val pollReadWriteCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+  private val pollReadWriteCB: PollCB = (
+      handle: PollHandle,
+      status: Integer,
+      events: Integer
+  ) => {
     val callback =
       HandleUtils.getData[RWResult => Unit](handle)
     callback.apply(
@@ -48,11 +52,19 @@ object Poll {
       )
     )
   }
-  private val pollReadCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+  private val pollReadCB: PollCB = (
+      handle: PollHandle,
+      status: Integer,
+      events: Integer
+  ) => {
     val callback = HandleUtils.getData[Int => Unit](handle)
     if ((events & UV_READABLE) != 0) callback.apply(status)
   }
-  private val pollWriteCB: PollCB = (handle: PollHandle, status: Int, events: Int) => {
+  private val pollWriteCB: PollCB = (
+      handle: PollHandle,
+      status: Integer,
+      events: Integer
+  ) => {
     val callback = HandleUtils.getData[Int => Unit](handle)
     if ((events & UV_WRITABLE) != 0) callback.apply(status)
   }

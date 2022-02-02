@@ -87,6 +87,14 @@ lazy val client = project
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
 
+lazy val server = project
+  .in(file("server"))
+  .settings(commonSettings)
+  .settings(test := {})
+  .settings(noPublishSettings)
+  .enablePlugins(ScalaNativePlugin)
+  .dependsOn(core)
+
 lazy val scalaJsCompat = project
   .in(file("scalajs-compat"))
   .settings(name := "native-loop-js-compat")
@@ -95,6 +103,16 @@ lazy val scalaJsCompat = project
   .settings(test := {})
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
+
+lazy val serverExample = project
+  .in(file("examples/server"))
+  .settings(
+    commonSettings,
+    examplesSettings
+  )
+  .settings(noPublishSettings)
+  .enablePlugins(ScalaNativePlugin)
+  .dependsOn(core, server, client)
 
 lazy val pipeExample = project
   .in(file("examples/pipe"))
