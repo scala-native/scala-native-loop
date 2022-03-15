@@ -26,22 +26,7 @@ val publishSettings = Seq(
       url("https://github.com/scala-native/scala-native-loop"),
       "scm:git:git@github.com:scala-native/scala-native-loop.git"
     )
-  ),
-  developers := List(
-    Developer(
-      "rwhaling",
-      "Richard Whaling",
-      "richard@whaling.dev",
-      url("http://whaling.dev")
-    )
   )
-)
-
-val noPublishSettings = Seq(
-  publish := {},
-  publishLocal := {},
-  publishArtifact := false,
-  skip in publish := true
 )
 
 lazy val commonSettings = Seq(
@@ -56,11 +41,6 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.11" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
-  Test / nativeLinkStubs := true,
-)
-
-lazy val examplesSettings = Seq(
-  test := {}
 )
 
 lazy val core = project
@@ -70,75 +50,10 @@ lazy val core = project
   .settings(publishSettings)
   .enablePlugins(ScalaNativePlugin)
 
-lazy val pipe = project
-  .in(file("pipe"))
-  .settings(commonSettings)
-  .settings(test := {})
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core)
-
-lazy val client = project
-  .in(file("client"))
-  .settings(commonSettings)
-  .settings(test := {})
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core)
-
-lazy val server = project
-  .in(file("server"))
-  .settings(commonSettings)
-  .settings(test := {})
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core)
-
 lazy val scalaJsCompat = project
   .in(file("scalajs-compat"))
   .settings(name := "native-loop-js-compat")
   .settings(commonSettings)
   .settings(publishSettings)
-  .settings(test := {})
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core)
-
-lazy val serverExample = project
-  .in(file("examples/server"))
-  .settings(
-    commonSettings,
-    examplesSettings
-  )
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core, server, client)
-
-lazy val pipeExample = project
-  .in(file("examples/pipe"))
-  .settings(
-    commonSettings,
-    examplesSettings
-  )
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core, pipe, client)
-
-lazy val curlExample = project
-  .in(file("examples/curl"))
-  .settings(
-    commonSettings,
-    examplesSettings
-  )
-  .settings(noPublishSettings)
-  .enablePlugins(ScalaNativePlugin)
-  .dependsOn(core, client)
-
-lazy val timerExample = project
-  .in(file("examples/timer"))
-  .settings(
-    commonSettings,
-    examplesSettings
-  )
-  .settings(noPublishSettings)
   .enablePlugins(ScalaNativePlugin)
   .dependsOn(core)
