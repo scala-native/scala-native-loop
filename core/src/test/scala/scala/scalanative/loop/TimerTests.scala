@@ -52,7 +52,7 @@ object TimerTests extends LoopTestSuite {
       } yield ()
     }
     test("close multiple times") {
-      val p = Promise[Unit]()
+      val p     = Promise[Unit]()
       val timer = Timer.timeout(10.millis)(() => {})
       timer.clear()
       timer.clear()
@@ -66,7 +66,8 @@ object TimerTests extends LoopTestSuite {
     }
     test("deadlock when futures need event loop run to unlock") {
       var completed = false
-      def recursive(): Future[Unit] = if (!completed) Future(recursive()) else Future.successful(())
+      def recursive(): Future[Unit] =
+        if (!completed) Future(recursive()) else Future.successful(())
       val r = recursive()
       Timer.timeout(10.millis)(() => completed = true)
       r
