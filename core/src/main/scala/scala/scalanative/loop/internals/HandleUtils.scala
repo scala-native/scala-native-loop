@@ -14,7 +14,7 @@ private[loop] object HandleUtils {
   @inline def getData[T <: Object](handle: Ptr[Byte]): T = {
     // data is the first member of uv_loop_t
     val ptrOfPtr = handle.asInstanceOf[Ptr[Ptr[Byte]]]
-    val dataPtr = !ptrOfPtr
+    val dataPtr  = !ptrOfPtr
     if (dataPtr == null) null.asInstanceOf[T]
     else {
       val rawptr = toRawPtr(dataPtr)
@@ -24,7 +24,7 @@ private[loop] object HandleUtils {
   @inline def setData(handle: Ptr[Byte], obj: Object): Unit = {
     // data is the first member of uv_loop_t
     val ptrOfPtr = handle.asInstanceOf[Ptr[Ptr[Byte]]]
-    if(obj != null) {
+    if (obj != null) {
       if (references.contains(obj)) references(obj) += 1
       else references(obj) = 1
       val rawptr = castObjectToRawPtr(obj)
@@ -37,7 +37,7 @@ private[loop] object HandleUtils {
     stdlib.free(handle)
   }
   @inline def close(handle: Ptr[Byte]): Unit = {
-    if(getData(handle) != null) {
+    if (getData(handle) != null) {
       uv_close(handle, onCloseCB)
       val data    = getData[Object](handle)
       val current = references(data)
