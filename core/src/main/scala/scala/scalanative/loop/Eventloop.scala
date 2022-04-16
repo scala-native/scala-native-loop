@@ -70,6 +70,11 @@ object LibUV {
   type TimerCB      = CFuncPtr1[TimerHandle, Unit]
   type FSCB         = CFuncPtr1[FSReq, Unit]
 
+  type PipeConnectReq = Ptr[Byte]
+  type PipeConnectCB = CFuncPtr2[PipeConnectReq, CInt, Unit]
+  type PipeAllocCB = CFuncPtr3[PipeHandle, CSize, Ptr[Buffer], Unit]
+  type PipeReadCB = CFuncPtr3[PipeHandle, CSSize, Ptr[Buffer], Unit]
+
   def uv_default_loop(): Loop                                     = extern
   def uv_loop_size(): CSize                                       = extern
   def uv_loop_alive(loop: Loop): CInt                             = extern
@@ -120,6 +125,11 @@ object LibUV {
   def uv_accept(server: PipeHandle, client: PipeHandle): Int = extern
   def uv_read_start(client: PipeHandle, allocCB: AllocCB, readCB: ReadCB): Int =
     extern
+  def uv_read_start(
+      handle: PipeHandle,
+      alloc_cb: PipeAllocCB,
+      read_cb: PipeReadCB
+  ): CInt = extern
   def uv_write(
       writeReq: WriteReq,
       client: PipeHandle,
@@ -174,6 +184,13 @@ object LibUV {
   def uv_req_cleanup(req: FSReq): Unit                              = extern
   def uv_fs_get_result(req: FSReq): Int                             = extern
   def uv_fs_get_ptr(req: FSReq): Ptr[Byte]                          = extern
+
+  def uv_pipe_connect(
+      uv_connect_t: ConnectReq,
+      uv_pipe_t: PipeHandle,
+      name: CString,
+      cb: ConnectCB
+  ): Unit = extern
 }
 
 object LibUVConstants {
@@ -195,13 +212,16 @@ object LibUVConstants {
   val UV_UDP_T     = 15
 
   // UV_REQ_T
-  val UV_WRITE_REQ_T = 3
-  val UV_FS_REQ_T    = 6
+  val UV_CONNECT_REQUEST_T = 2
+  val UV_WRITE_REQ_T       = 3
+  val UV_FS_REQ_T          = 6
 
-  val UV_READABLE    = 1
-  val UV_WRITABLE    = 2
-  val UV_DISCONNECT  = 4
-  val UV_PRIORITIZED = 8
+  val UV_READABLE          = 1
+  val UV_WRITABLE          = 2
+  val UV_DISCONNECT        = 4
+  val UV_PRIORITIZED       = 8
+
+  val UV_EOF = -4095
 
   val O_RDWR = 2
   val O_CREAT = sys.props("os.name") match {
