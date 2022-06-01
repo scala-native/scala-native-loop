@@ -5,11 +5,10 @@ import scala.scalanative.runtime._
 import scala.scalanative.runtime.Intrinsics._
 import scala.scalanative.unsafe.Ptr
 import scala.scalanative.libc.stdlib
-import scala.collection.mutable
 import LibUV._
 
 private[loop] object HandleUtils {
-  private val references = mutable.Map.empty[Object, Int]
+  private val references = new java.util.IdentityHashMap[Object, Int]()
 
   @inline def getData[T <: Object](handle: Ptr[Byte]): T = {
     // data is the first member of uv_loop_t
@@ -25,8 +24,7 @@ private[loop] object HandleUtils {
     // data is the first member of uv_loop_t
     val ptrOfPtr = handle.asInstanceOf[Ptr[Ptr[Byte]]]
     if (obj != null) {
-      if (references.contains(obj)) references(obj) += 1
-      else references(obj) = 1
+      references.put(obj, references.get(obj) + 1)
       val rawptr = castObjectToRawPtr(obj)
       !ptrOfPtr = fromRawPtr[Byte](rawptr)
     } else {
@@ -40,8 +38,8 @@ private[loop] object HandleUtils {
     if (getData(handle) != null) {
       uv_close(handle, onCloseCB)
       val data    = getData[Object](handle)
-      val current = references(data)
-      if (current > 1) references(data) -= 1
+      val current = references.get(data)
+      if (current > 1) references.put(data, current - 1)
       else references.remove(data)
       setData(handle, null)
     }
