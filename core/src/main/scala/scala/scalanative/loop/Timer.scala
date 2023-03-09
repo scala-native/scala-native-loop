@@ -31,7 +31,6 @@ object Timer {
   ): Timer = {
     val timerHandle = stdlib.malloc(uv_handle_size(UV_TIMER_T))
     uv_timer_init(EventLoop.loop, timerHandle)
-    HandleUtils.setData(timerHandle, callback)
     val timer = new Timer(timerHandle)
     val withClearIfTimeout: () => Unit =
       if (repeat == 0L) { () =>
@@ -40,6 +39,7 @@ object Timer {
           timer.clear()
         }
       } else callback
+    HandleUtils.setData(timerHandle, withClearIfTimeout)
     uv_timer_start(timerHandle, timeoutCB, timeout, repeat)
     timer
   }
