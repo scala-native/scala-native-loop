@@ -3,6 +3,7 @@ import scala.scalanative.unsafe._
 import scala.scalanative.runtime._
 import scala.scalanative.runtime.Intrinsics._
 import scala.collection.mutable
+import scala.scalanative.concurrent.NativeExecutionContext
 
 object EventLoop {
   import LibUV._, LibUVConstants._
@@ -10,7 +11,7 @@ object EventLoop {
   val loop: LibUV.Loop = uv_default_loop()
 
   // Schedule loop execution after main ends
-  scalanative.runtime.ExecutionContext.global.execute(
+  scalanative.concurrent.NativeExecutionContext.queue.execute(
     new Runnable {
       def run(): Unit = EventLoop.run()
     }
@@ -19,7 +20,7 @@ object EventLoop {
   // Reference to the private queue of scala.scalanative.runtime.ExecutionContext
   private val queue: mutable.ListBuffer[Runnable] = {
     val executionContextPtr =
-      fromRawPtr[Byte](castObjectToRawPtr(ExecutionContext))
+      fromRawPtr[Byte](castObjectToRawPtr(NativeExecutionContext))
     val queuePtr = !((executionContextPtr + 8).asInstanceOf[Ptr[Ptr[Byte]]])
     castRawPtrToObject(toRawPtr(queuePtr))
       .asInstanceOf[mutable.ListBuffer[Runnable]]
@@ -33,7 +34,7 @@ object EventLoop {
           runnable.run()
         } catch {
           case t: Throwable =>
-            ExecutionContext.global.reportFailure(t)
+            NativeExecutionContext.queue.reportFailure(t)
         }
         uv_run(loop, UV_RUN_NOWAIT)
       }

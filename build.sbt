@@ -1,5 +1,5 @@
-val scala3 = "3.1.1"
-val scala213 = "2.13.4"
+val scala3 = "3.3.3"
+val scala213 = "2.13.14"
 val scala212 = "2.12.13"
 val scala211 = "2.11.12"
 
@@ -39,7 +39,7 @@ lazy val commonSettings = Seq(
     "-Xfatal-warnings",
     // "-Wunused:imports"
   ),
-  libraryDependencies += "com.lihaoyi" %%% "utest" % "0.7.11" % Test,
+  libraryDependencies += "com.lihaoyi" %%% "utest" % "0.8.3" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
 )
 
