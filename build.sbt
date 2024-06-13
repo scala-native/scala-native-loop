@@ -1,14 +1,13 @@
 val scala3 = "3.3.3"
 val scala213 = "2.13.14"
-val scala212 = "2.12.13"
-val scala211 = "2.11.12"
+val scala212 = "2.12.19"
 
 inThisBuild(
   Seq(
     organization := "com.github.lolgab",
     version := "0.2.1",
     scalaVersion := scala213,
-    crossScalaVersions := Seq(scala3, scala213, scala212, scala211),
+    crossScalaVersions := Seq(scala3, scala213, scala212)
   )
 )
 
