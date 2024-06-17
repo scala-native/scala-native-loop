@@ -40,7 +40,6 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies += "com.lihaoyi" %%% "utest" % "0.8.3" % Test,
   testFrameworks += new TestFramework("utest.runner.Framework"),
-  nativeConfig ~= {_.withMultithreading(false)},
 )
 
 lazy val core = project
