@@ -1,38 +1,40 @@
 package scala.scalanative.loop
 
-import scala.scalanative.libc.stdlib
 import LibUV._, LibUVConstants._
-import scala.scalanative.unsafe.Ptr
+import scala.scalanative.unsafe.{Ptr, sizeOf}
+import scala.scalanative.runtime.BlobArray
 import internals.HandleUtils
 
 class RWResult(val result: Int, val readable: Boolean, val writable: Boolean)
-@inline class Poll(val ptr: Ptr[Byte]) extends AnyVal {
+@inline class Poll(private val data: BlobArray) extends AnyVal {
+  private def handle: Ptr[Byte] = data.atUnsafe(0)
+
   def start(in: Boolean, out: Boolean)(callback: RWResult => Unit): Unit = {
-    HandleUtils.setData(ptr, callback)
+    HandleUtils.setData(handle, callback)
     var events = 0
     if (out) events |= UV_WRITABLE
     if (in) events |= UV_READABLE
-    uv_poll_start(ptr, events, Poll.pollReadWriteCB)
+    uv_poll_start(handle, events, Poll.pollReadWriteCB)
   }
 
   def startReadWrite(callback: RWResult => Unit): Unit = {
-    HandleUtils.setData(ptr, callback)
-    uv_poll_start(ptr, UV_READABLE | UV_WRITABLE, Poll.pollReadWriteCB)
+    HandleUtils.setData(handle, callback)
+    uv_poll_start(handle, UV_READABLE | UV_WRITABLE, Poll.pollReadWriteCB)
   }
 
   def startRead(callback: Int => Unit): Unit = {
-    HandleUtils.setData(ptr, callback)
-    uv_poll_start(ptr, UV_READABLE, Poll.pollReadCB)
+    HandleUtils.setData(handle, callback)
+    uv_poll_start(handle, UV_READABLE, Poll.pollReadCB)
   }
 
   def startWrite(callback: Int => Unit): Unit = {
-    HandleUtils.setData(ptr, callback)
-    uv_poll_start(ptr, UV_WRITABLE, Poll.pollWriteCB)
+    HandleUtils.setData(handle, callback)
+    uv_poll_start(handle, UV_WRITABLE, Poll.pollWriteCB)
   }
 
   def stop(): Unit = {
-    uv_poll_stop(ptr)
-    HandleUtils.close(ptr)
+    uv_poll_stop(handle)
+    HandleUtils.close(handle)
   }
 }
 
@@ -72,8 +74,10 @@ object Poll {
   private lazy val size = uv_handle_size(UV_POLL_T)
 
   def apply(fd: Int): Poll = {
-    val pollHandle = stdlib.malloc(size)
-    uv_poll_init(EventLoop.loop, pollHandle, fd)
-    new Poll(pollHandle)
+    // GC managed memory, but scans only user data 
+    val data = BlobArray.alloc(size.toInt)
+    data.setScannableLimitUnsafe(sizeOf[Ptr[_]])
+    uv_poll_init(EventLoop.loop, data.atUnsafe(0), fd)
+    new Poll(data)
   }
 }

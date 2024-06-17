@@ -3,6 +3,7 @@ import scala.scalanative.unsafe._
 import scala.scalanative.runtime._
 import scala.scalanative.runtime.Intrinsics._
 import scala.collection.mutable
+import scala.scalanative.concurrent.NativeExecutionContext
 
 object EventLoop {
   import LibUV._, LibUVConstants._
@@ -10,31 +11,14 @@ object EventLoop {
   val loop: LibUV.Loop = uv_default_loop()
 
   // Schedule loop execution after main ends
-  scalanative.runtime.ExecutionContext.global.execute(
-    new Runnable {
-      def run(): Unit = EventLoop.run()
-    }
-  )
-
-  // Reference to the private queue of scala.scalanative.runtime.ExecutionContext
-  private val queue: mutable.ListBuffer[Runnable] = {
-    val executionContextPtr =
-      fromRawPtr[Byte](castObjectToRawPtr(ExecutionContext))
-    val queuePtr = !((executionContextPtr + 8).asInstanceOf[Ptr[Ptr[Byte]]])
-    castRawPtrToObject(toRawPtr(queuePtr))
-      .asInstanceOf[mutable.ListBuffer[Runnable]]
-  }
+  NativeExecutionContext.queue.execute { () => EventLoop.run() }
 
   def run(): Unit = {
+    // scala.scalanative package private queue containing WorkStealing API
+    val queue = NativeExecutionContext.queueInternal
     while (uv_loop_alive(loop) != 0 || queue.nonEmpty) {
       while (queue.nonEmpty) {
-        val runnable = queue.remove(0)
-        try {
-          runnable.run()
-        } catch {
-          case t: Throwable =>
-            ExecutionContext.global.reportFailure(t)
-        }
+        queue.stealWork(1)
         uv_run(loop, UV_RUN_NOWAIT)
       }
       uv_run(loop, UV_RUN_ONCE)
